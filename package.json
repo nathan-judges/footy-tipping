@@ -17,6 +17,7 @@
     "archive:snapshot": "ROUND=$(node -e \"const fs=require('fs');const data=JSON.parse(fs.readFileSync('data/current_round_tips.json','utf8'));process.stdout.write(String(data.round ?? ''));\" ) && TIMESTAMP=$(date +%Y-%m-%d) && mkdir -p data/archive && cp data/current_round_tips.json \"data/archive/${TIMESTAMP}_round_${ROUND}.json\" && cp data/current_round_tips.json \"data/archive/round_${ROUND}.json\" && echo \"Archived round ${ROUND}\""
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "next": "^15.5.15",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

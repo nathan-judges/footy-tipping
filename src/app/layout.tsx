@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Footy Tipping",
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         }}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
