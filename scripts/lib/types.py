@@ -18,6 +18,10 @@ class Fixture:
     venue: str
     kickoff_at: str
     status: GameStatus
+    home_score: int | None = None
+    away_score: int | None = None
+    actual_winner: str | None = None
+    actual_margin: int | None = None
 
 
 @dataclass(frozen=True)

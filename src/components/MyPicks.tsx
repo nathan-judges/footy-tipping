@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { RoundGameTip, UserPicks } from "@/lib/types";
-import { buildPicksStorageKey } from "@/lib/useRoundPicks";
+import { getUserPicksForRound, saveUserPicksForRound } from "@/lib/userPicks";
 
 interface MyPicksProps {
   round: number;
@@ -21,17 +21,13 @@ export function MyPicks({ round, games }: MyPicksProps) {
   const [picks, setPicks] = useState<UserPicks>(() => buildInitial(games));
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(buildPicksStorageKey(round));
+    const saved = getUserPicksForRound(round);
     if (!saved) return;
-    try {
-      setPicks(JSON.parse(saved) as UserPicks);
-    } catch {
-      setPicks(buildInitial(games));
-    }
+    setPicks(saved);
   }, [games, round]);
 
   useEffect(() => {
-    window.localStorage.setItem(buildPicksStorageKey(round), JSON.stringify(picks));
+    saveUserPicksForRound(round, picks);
   }, [picks, round]);
 
   return (

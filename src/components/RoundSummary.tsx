@@ -15,7 +15,24 @@ export function RoundSummary({ round, season, games, userPicks, hasSavedPicks }:
   const summary = calculateRoundAccuracy(games, userPicks);
   const total = summary.finishedGamesWithResult;
 
-  if (total === 0) return null;
+  if (total === 0) {
+    return (
+      <section
+        style={{
+          background: "#fff",
+          border: "1px solid #d0d7de",
+          borderRadius: 10,
+          padding: 16,
+          marginBottom: 16
+        }}
+      >
+        <h2 style={{ margin: "0 0 10px" }}>
+          Round {round} Summary <span style={{ color: "#57606a", fontWeight: 500 }}>({season})</span>
+        </h2>
+        <p style={{ margin: 0, color: "#57606a" }}>Round {round} has not started yet. Check back after the games!</p>
+      </section>
+    );
+  }
 
   const modelPct = Math.round((summary.modelCorrect / total) * 100);
   const userPct = summary.userCorrect == null ? null : Math.round((summary.userCorrect / total) * 100);

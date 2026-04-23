@@ -20,3 +20,18 @@
 - `src/app/api/live-tips/route.ts` is JSON-first against NRL match-centre APIs.
 - If API discovery fails, it falls back to HTML/embedded payload parsing.
 - Failures are soft: users still see baked tips when live scraping is unavailable.
+
+## Storing game results in baked data
+
+**Decision**: Store `homeScore`, `awayScore`, `actualWinner`, and `actualMargin` inline on each game object in the baked tips JSON (`data/current_round_tips.json` and `data/archive/*.json`).
+
+**Rationale**:
+
+- Keeps each round snapshot self-contained (tips + results live together).
+- Simplifies frontend accuracy calculation (no extra results endpoint).
+- Archive files become complete historical records.
+
+**Alternatives considered**:
+
+- Separate results artifact or API: additional contract + more moving parts.
+- Database storage: unnecessary until we add authenticated multi-user picks or richer analytics.

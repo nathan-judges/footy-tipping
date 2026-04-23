@@ -22,7 +22,7 @@ function finishedGame(overrides: Partial<RoundGameTip> = {}): RoundGameTip {
 }
 
 describe("RoundSummary", () => {
-  it("renders nothing when no finished games with results", () => {
+  it("renders empty-state message when no finished games with results", () => {
     const games: RoundGameTip[] = [
       {
         gameId: "u1",
@@ -37,8 +37,8 @@ describe("RoundSummary", () => {
       }
     ];
 
-    const { container } = render(React.createElement(RoundSummary, { round: 1, season: 2026, games }));
-    expect(container).toBeEmptyDOMElement();
+    render(React.createElement(RoundSummary, { round: 1, season: 2026, games }));
+    expect(screen.getByText(/Round 1 has not started yet/i)).toBeInTheDocument();
   });
 
   it("renders model and user accuracy when picks exist", () => {
