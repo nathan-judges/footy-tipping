@@ -15,6 +15,7 @@ def _utc_now_iso() -> str:
 def build_round_payload(
     tips: list[TipResult], round_number: int, season: int, model_version: str
 ) -> dict:
+    now_iso = _utc_now_iso()
     games: list[dict] = []
     for tip in tips:
         game = {
@@ -49,7 +50,8 @@ def build_round_payload(
         "round": round_number,
         "season": season,
         "modelVersion": model_version,
-        "generatedAt": _utc_now_iso(),
+        "generatedAt": now_iso,
+        "lastUpdated": now_iso,
         "marginGameId": margin_game_id,
         "games": games,
     }

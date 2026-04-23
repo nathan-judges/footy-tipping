@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Ladder } from "@/components/Ladder";
-import { MarginSelector } from "@/components/MarginSelector";
+import { MyPicksTab } from "@/components/MyPicksTab";
 import { RoundInteractive } from "@/components/RoundInteractive";
 import { RoundSelector } from "@/components/RoundSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,26 +21,33 @@ export default function HomePage() {
           <p className="mb-2 text-muted-foreground">
             Round {tips.round} ({tips.season}) - model {tips.modelVersion}
           </p>
+          <p className="mb-2 text-muted-foreground">
+            Updated {new Date(tips.lastUpdated ?? tips.generatedAt).toLocaleString("en-AU")}
+          </p>
           <p className="mb-6 text-muted-foreground">
             Last update: {new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")}
           </p>
         </div>
 
-        <RoundSelector rounds={availableRounds} selectedRound={tips.round} />
+        <RoundSelector rounds={availableRounds} selectedRound={tips.round} currentRound={tips.round} />
       </div>
       <p className="mb-6">
         <Link href="/archive">View baked-data archive</Link>
       </p>
 
       <Tabs defaultValue="tips">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="tips">Tips</TabsTrigger>
+          <TabsTrigger value="my-picks">My Picks</TabsTrigger>
           <TabsTrigger value="ladder">Ladder</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tips">
-          <MarginSelector games={tips.games} suggestedGameId={tips.marginGameId} />
-          <RoundInteractive round={tips.round} season={tips.season} games={tips.games} showPicks />
+          <RoundInteractive round={tips.round} season={tips.season} games={tips.games} />
+        </TabsContent>
+
+        <TabsContent value="my-picks">
+          <MyPicksTab games={tips.games} round={tips.round} season={tips.season} suggestedMarginGameId={tips.marginGameId} />
         </TabsContent>
 
         <TabsContent value="ladder">

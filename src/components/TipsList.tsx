@@ -2,16 +2,15 @@
 
 import type { RoundGameTip } from "@/lib/types";
 import { TipCard } from "./TipCard";
-import type { UserPicks } from "@/lib/types";
 
 interface TipsListProps {
+  round: number;
+  season: number;
   games: RoundGameTip[];
   mode?: "upcoming" | "all";
-  userPicks?: UserPicks | null;
-  onPickChange?: (gameId: string, pick: string) => void;
 }
 
-export function TipsList({ games, mode = "upcoming", userPicks, onPickChange }: TipsListProps) {
+export function TipsList({ games, mode = "upcoming", round, season }: TipsListProps) {
   const visibleGames = mode === "all" ? games : games.filter((game) => game.status === "upcoming");
 
   if (visibleGames.length === 0) {
@@ -23,9 +22,9 @@ export function TipsList({ games, mode = "upcoming", userPicks, onPickChange }: 
       {visibleGames.map((game) => (
         <TipCard
           key={game.gameId}
+          round={round}
+          season={season}
           game={game}
-          userPick={userPicks?.winnerByGameId?.[game.gameId]}
-          onPickChange={onPickChange}
         />
       ))}
     </section>

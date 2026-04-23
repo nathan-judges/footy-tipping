@@ -44,6 +44,7 @@ export interface CurrentRoundTips {
   season: number;
   modelVersion: string;
   generatedAt: string;
+  lastUpdated?: string;
   marginGameId?: string;
   games: RoundGameTip[];
 }

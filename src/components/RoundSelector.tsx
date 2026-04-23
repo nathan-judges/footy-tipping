@@ -6,10 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 interface RoundSelectorProps {
   rounds: number[];
   selectedRound: number;
+  currentRound: number;
   label?: string;
 }
 
-export function RoundSelector({ rounds, selectedRound, label = "Round" }: RoundSelectorProps) {
+export function RoundSelector({ rounds, selectedRound, currentRound, label = "Round" }: RoundSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -30,11 +31,16 @@ export function RoundSelector({ rounds, selectedRound, label = "Round" }: RoundS
           router.push(nextHref);
         }}
       >
-        {normalizedRounds.map((round) => (
-          <option key={round} value={round}>
-            {round}
-          </option>
-        ))}
+        {normalizedRounds.map((round) => {
+          const labelSuffix =
+            round < currentRound ? "Past" : round === currentRound ? "Current" : "Future (Preliminary)";
+          const isFuture = round > currentRound;
+          return (
+            <option key={round} value={round} className={isFuture ? "text-muted-foreground italic" : undefined}>
+              {round} — {labelSuffix}
+            </option>
+          );
+        })}
       </select>
     </label>
   );

@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -23,6 +23,35 @@ def _write_json(path: Path, payload: dict) -> str:
     content = json.dumps(payload, indent=2) + "\n"
     path.write_text(content, encoding="utf-8")
     return content
+
+
+def _utc_date_stamp() -> str:
+    return datetime.now(tz=timezone.utc).date().isoformat()
+
+
+def _write_archive_snapshot(round_payload: dict) -> None:
+    round_number = int(round_payload.get("round", 0) or 0)
+    if round_number <= 0:
+        return
+    archive_dir = Path("data/archive")
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    stamp = _utc_date_stamp()
+    _write_json(archive_dir / f"{stamp}_round_{round_number}.json", round_payload)
+    _write_json(archive_dir / f"round_{round_number}.json", round_payload)
+
+
+def _determine_current_round(season: int, max_round: int = 30) -> int:
+    """Best-effort: find first round with any non-finished game."""
+    for candidate in range(1, max_round + 1):
+        try:
+            fixtures = fetch_round_fixtures(season=season, round_number=candidate)
+        except Exception:
+            continue
+        if not fixtures:
+            continue
+        if any(f.status != "finished" for f in fixtures):
+            return candidate
+    return 1
 
 
 def run_pipeline(round_number: int, season: int, model_version: str) -> tuple[dict, dict, dict]:
@@ -75,9 +104,10 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print payloads but do not write files.")
     parser.add_argument("--write", action="store_true", help="Write generated JSON files to data/.")
     parser.add_argument("--commit", action="store_true", help="Commit baked files through GitHub API.")
-    parser.add_argument("--round", type=int, default=1, dest="round_number", help="Round number.")
+    parser.add_argument("--round", default="current", dest="round_number", help="Round number, or 'current'.")
     parser.add_argument("--season", type=int, default=2026, help="Season year.")
     parser.add_argument("--model-version", default="elo-odds-v1", help="Model version tag.")
+    parser.add_argument("--future-rounds", type=int, default=5, help="Generate N future rounds into data/archive/.")
     parser.add_argument(
         "--archive-through",
         type=int,
@@ -86,10 +116,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    resolved_round: int
+    if isinstance(args.round_number, str) and args.round_number.lower().strip() == "current":
+        resolved_round = _determine_current_round(season=args.season)
+    else:
+        resolved_round = int(args.round_number)
+
     rounds = (
         list(range(1, args.archive_through + 1))
         if args.archive_through > 0
-        else [args.round_number]
+        else [resolved_round]
     )
 
     last_round_content = ""
@@ -118,8 +154,23 @@ def main() -> None:
             _write_json(Path("data/current_round_tips.json"), round_payload)
             _write_json(Path("data/last_update.json"), update_payload)
             _write_json(Path("data/ladder.json"), ladder_payload)
+            _write_archive_snapshot(round_payload)
             if args.archive_through > 0:
-                subprocess.run(["npm", "run", "archive:snapshot"], check=True)
+                continue
+
+            if args.future_rounds > 0:
+                for future_round in range(round_number + 1, round_number + args.future_rounds + 1):
+                    try:
+                        future_payload, _, _ = run_pipeline(
+                            round_number=future_round,
+                            season=args.season,
+                            model_version=args.model_version,
+                        )
+                    except Exception:
+                        break
+                    if not future_payload.get("games"):
+                        break
+                    _write_archive_snapshot(future_payload)
 
     if args.dry_run:
         return

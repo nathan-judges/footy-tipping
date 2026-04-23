@@ -4,6 +4,7 @@ import { RoundSelector } from "@/components/RoundSelector";
 import { loadAvailableRoundNumbers, loadRoundTips } from "@/lib/loadArchive";
 import { loadCurrentRoundTips, loadLadder, loadLastUpdateMeta } from "@/lib/loadTips";
 import { Ladder } from "@/components/Ladder";
+import { MyPicksTab } from "@/components/MyPicksTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RoundPageProps {
@@ -21,6 +22,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
   const tips = Number.isFinite(round) ? loadRoundTips(round) : null;
   const availableRounds = loadAvailableRoundNumbers(current.season);
   const selectedRound = tips?.round ?? current.round;
+  const isFuture = tips != null && tips.round > current.round;
 
   return (
     <main className="mx-auto max-w-[860px] px-4 pb-8 pt-6">
@@ -30,12 +32,17 @@ export default async function RoundPage({ params }: RoundPageProps) {
           <p className="mb-2 text-muted-foreground">
             Round {selectedRound} ({current.season}) - model {tips?.modelVersion ?? current.modelVersion}
           </p>
+          {tips ? (
+            <p className="mb-2 text-muted-foreground">
+              Updated {new Date(tips.lastUpdated ?? tips.generatedAt).toLocaleString("en-AU")}
+            </p>
+          ) : null}
           <p className="mb-2 text-muted-foreground">
             Last update: {new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")}
           </p>
         </div>
 
-        <RoundSelector rounds={availableRounds} selectedRound={selectedRound} />
+        <RoundSelector rounds={availableRounds} selectedRound={selectedRound} currentRound={current.round} />
       </div>
 
       <p className="mb-6 mt-2">
@@ -49,18 +56,39 @@ export default async function RoundPage({ params }: RoundPageProps) {
           No baked snapshot found for round <strong>{roundParam}</strong>.
         </p>
       ) : (
-        <Tabs defaultValue="tips">
-          <TabsList className="grid w-full grid-cols-2">
+        <>
+          {isFuture ? (
+            <div className="mb-4 rounded-md border-l-4 border-amber-400 bg-amber-50 p-3">
+              <p className="text-sm text-amber-800">
+                ⚠️ You&apos;re viewing a future round. Predictions are preliminary and may change as team lists and late mail
+                are announced.
+              </p>
+            </div>
+          ) : null}
+
+          <Tabs defaultValue="tips">
+            <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="tips">Tips</TabsTrigger>
+            <TabsTrigger value="my-picks">My Picks</TabsTrigger>
             <TabsTrigger value="ladder">Ladder</TabsTrigger>
           </TabsList>
           <TabsContent value="tips">
             <RoundInteractive round={tips.round} season={tips.season} games={tips.games} mode="all" />
           </TabsContent>
+          <TabsContent value="my-picks">
+            <MyPicksTab
+              games={tips.games}
+              round={tips.round}
+              season={tips.season}
+              suggestedMarginGameId={tips.marginGameId}
+              disabled={isFuture}
+            />
+          </TabsContent>
           <TabsContent value="ladder">
             <Ladder ladder={ladder} />
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </>
       )}
     </main>
   );
