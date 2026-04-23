@@ -1,14 +1,23 @@
 import Link from "next/link";
-import { RoundInteractive } from "@/components/RoundInteractive";
+import { RoundView } from "@/components/RoundView";
 import { RoundSelector } from "@/components/RoundSelector";
 import { loadAvailableRoundNumbers, loadRoundTips } from "@/lib/loadArchive";
-import { loadCurrentRoundTips, loadLadder, loadLastUpdateMeta } from "@/lib/loadTips";
+import { loadCurrentRoundTips, loadLadder } from "@/lib/loadTips";
 import { Ladder } from "@/components/Ladder";
-import { MyPicksTab } from "@/components/MyPicksTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RoundPageProps {
   params: Promise<{ round: string }>;
+}
+
+function formatRoundUpdatedLabel(timestamp: string): string {
+  return new Date(timestamp).toLocaleString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
 }
 
 export default async function RoundPage({ params }: RoundPageProps) {
@@ -16,7 +25,6 @@ export default async function RoundPage({ params }: RoundPageProps) {
   const round = Number(roundParam);
 
   const current = loadCurrentRoundTips();
-  const lastUpdate = loadLastUpdateMeta();
   const ladder = loadLadder();
 
   const tips = Number.isFinite(round) ? loadRoundTips(round) : null;
@@ -29,17 +37,11 @@ export default async function RoundPage({ params }: RoundPageProps) {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="mb-2">NRL Tipping</h1>
-          <p className="mb-2 text-muted-foreground">
-            Round {selectedRound} ({current.season}) - model {tips?.modelVersion ?? current.modelVersion}
-          </p>
           {tips ? (
             <p className="mb-2 text-muted-foreground">
-              Updated {new Date(tips.lastUpdated ?? tips.generatedAt).toLocaleString("en-AU")}
+              Round {selectedRound} ({current.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
             </p>
-          ) : null}
-          <p className="mb-2 text-muted-foreground">
-            Last update: {new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")}
-          </p>
+          ) : <p className="mb-2 text-muted-foreground">Round {selectedRound} ({current.season})</p>}
         </div>
 
         <RoundSelector rounds={availableRounds} selectedRound={selectedRound} currentRound={current.round} />
@@ -66,27 +68,24 @@ export default async function RoundPage({ params }: RoundPageProps) {
             </div>
           ) : null}
 
-          <Tabs defaultValue="tips">
-            <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="tips">Tips</TabsTrigger>
-            <TabsTrigger value="my-picks">My Picks</TabsTrigger>
-            <TabsTrigger value="ladder">Ladder</TabsTrigger>
-          </TabsList>
-          <TabsContent value="tips">
-            <RoundInteractive round={tips.round} season={tips.season} games={tips.games} mode="all" />
-          </TabsContent>
-          <TabsContent value="my-picks">
-            <MyPicksTab
+          <Tabs defaultValue="round">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="round">Round {tips.round}</TabsTrigger>
+              <TabsTrigger value="ladder">Ladder</TabsTrigger>
+            </TabsList>
+            <TabsContent value="round">
+              <RoundView
               games={tips.games}
               round={tips.round}
               season={tips.season}
               suggestedMarginGameId={tips.marginGameId}
-              disabled={isFuture}
+                mode="all"
+                disableInteractions={isFuture}
             />
-          </TabsContent>
-          <TabsContent value="ladder">
-            <Ladder ladder={ladder} />
-          </TabsContent>
+            </TabsContent>
+            <TabsContent value="ladder">
+              <Ladder ladder={ladder} />
+            </TabsContent>
           </Tabs>
         </>
       )}

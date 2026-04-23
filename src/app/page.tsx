@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { Ladder } from "@/components/Ladder";
-import { MyPicksTab } from "@/components/MyPicksTab";
-import { RoundInteractive } from "@/components/RoundInteractive";
+import { RoundView } from "@/components/RoundView";
 import { RoundSelector } from "@/components/RoundSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadAvailableRoundNumbers } from "@/lib/loadArchive";
-import { loadCurrentRoundTips, loadLadder, loadLastUpdateMeta } from "@/lib/loadTips";
+import { loadCurrentRoundTips, loadLadder } from "@/lib/loadTips";
+
+function formatRoundUpdatedLabel(timestamp: string): string {
+  return new Date(timestamp).toLocaleString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
 
 export default function HomePage() {
   const tips = loadCurrentRoundTips();
-  const lastUpdate = loadLastUpdateMeta();
   const ladder = loadLadder();
   const availableRounds = loadAvailableRoundNumbers(tips.season);
 
@@ -18,14 +26,8 @@ export default function HomePage() {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="mb-2">NRL Tipping</h1>
-          <p className="mb-2 text-muted-foreground">
-            Round {tips.round} ({tips.season}) - model {tips.modelVersion}
-          </p>
-          <p className="mb-2 text-muted-foreground">
-            Updated {new Date(tips.lastUpdated ?? tips.generatedAt).toLocaleString("en-AU")}
-          </p>
           <p className="mb-6 text-muted-foreground">
-            Last update: {new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")}
+            Round {tips.round} ({tips.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
           </p>
         </div>
 
@@ -35,19 +37,14 @@ export default function HomePage() {
         <Link href="/archive">View baked-data archive</Link>
       </p>
 
-      <Tabs defaultValue="tips">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="tips">Tips</TabsTrigger>
-          <TabsTrigger value="my-picks">My Picks</TabsTrigger>
+      <Tabs defaultValue="round">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="round">Round {tips.round}</TabsTrigger>
           <TabsTrigger value="ladder">Ladder</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tips">
-          <RoundInteractive round={tips.round} season={tips.season} games={tips.games} />
-        </TabsContent>
-
-        <TabsContent value="my-picks">
-          <MyPicksTab games={tips.games} round={tips.round} season={tips.season} suggestedMarginGameId={tips.marginGameId} />
+        <TabsContent value="round">
+          <RoundView round={tips.round} season={tips.season} games={tips.games} suggestedMarginGameId={tips.marginGameId} />
         </TabsContent>
 
         <TabsContent value="ladder">

@@ -9,9 +9,12 @@ interface TipCardProps {
   round: number;
   season: number;
   game: RoundGameTip;
+  userPick?: string;
+  onPickChange?: (gameId: string, team: string) => void;
+  disablePicks?: boolean;
 }
 
-export function TipCard({ game, round, season }: TipCardProps) {
+export function TipCard({ game, round, season, userPick, onPickChange, disablePicks = false }: TipCardProps) {
   const [overrideTip, setOverrideTip] = useState<string | null>(game.tipOverride?.tipTeam ?? null);
   const [overrideReason, setOverrideReason] = useState<string | null>(game.tipOverride?.reason ?? null);
 
@@ -90,6 +93,7 @@ export function TipCard({ game, round, season }: TipCardProps) {
   const tipConfidencePct = Math.round(game.confidence * 100);
   const homePct = finalTipTeam === game.homeTeam ? tipConfidencePct : 100 - tipConfidencePct;
   const awayPct = 100 - homePct;
+  const selectedPick = userPick ?? "";
   const teamVars = {
     "--team-primary": homeTeam.primary,
     "--home-color": homeTeam.primary,
@@ -115,9 +119,20 @@ export function TipCard({ game, round, season }: TipCardProps) {
 
       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">
-            {game.homeTeam} <span className="text-muted-foreground">({homeTeam.shortName})</span>
-          </div>
+          <button
+            type="button"
+            className="inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
+            disabled={!onPickChange || disablePicks}
+            style={
+              selectedPick === game.homeTeam
+                ? { backgroundColor: homeTeam.primary, color: "#fff", borderColor: homeTeam.primary }
+                : undefined
+            }
+            onClick={() => onPickChange?.(game.gameId, game.homeTeam)}
+          >
+            <span className="truncate">{game.homeTeam}</span>
+            <span className={selectedPick === game.homeTeam ? "text-white/85" : "text-muted-foreground"}>({homeTeam.shortName})</span>
+          </button>
         </div>
 
         <div className="min-w-[140px]">
@@ -131,9 +146,20 @@ export function TipCard({ game, round, season }: TipCardProps) {
         </div>
 
         <div className="min-w-0 text-right">
-          <div className="truncate text-sm font-semibold">
-            <span className="text-muted-foreground">({awayTeam.shortName})</span> {game.awayTeam}
-          </div>
+          <button
+            type="button"
+            className="ml-auto inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
+            disabled={!onPickChange || disablePicks}
+            style={
+              selectedPick === game.awayTeam
+                ? { backgroundColor: awayTeam.primary, color: "#fff", borderColor: awayTeam.primary }
+                : undefined
+            }
+            onClick={() => onPickChange?.(game.gameId, game.awayTeam)}
+          >
+            <span className={selectedPick === game.awayTeam ? "text-white/85" : "text-muted-foreground"}>({awayTeam.shortName})</span>
+            <span className="truncate">{game.awayTeam}</span>
+          </button>
         </div>
       </div>
 
