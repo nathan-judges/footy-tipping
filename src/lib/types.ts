@@ -28,6 +28,15 @@ export interface RoundGameTip {
   predictedMargin: number;
   odds?: GameOdds;
   tipOverride?: TipOverride;
+
+  /**
+   * Final score/result fields (only present when `status === "finished"`).
+   * These are optional because older archive snapshots may not have them.
+   */
+  homeScore?: number;
+  awayScore?: number;
+  actualWinner?: string;
+  actualMargin?: number;
 }
 
 export interface CurrentRoundTips {

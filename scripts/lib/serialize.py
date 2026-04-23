@@ -34,6 +34,14 @@ def build_round_payload(
             game["nrlSlug"] = tip.nrl_slug
         if tip.odds is not None:
             game["odds"] = asdict(tip.odds)
+        if tip.home_score is not None:
+            game["homeScore"] = tip.home_score
+        if tip.away_score is not None:
+            game["awayScore"] = tip.away_score
+        if tip.actual_winner is not None:
+            game["actualWinner"] = tip.actual_winner
+        if tip.actual_margin is not None:
+            game["actualMargin"] = tip.actual_margin
         games.append(game)
 
     margin_game_id = _suggest_margin_game_id(tips)

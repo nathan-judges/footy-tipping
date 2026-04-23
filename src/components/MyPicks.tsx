@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import type { RoundGameTip, UserPicks } from "@/lib/types";
-
-const PICKS_KEY = "footy_user_picks_v1";
+import { buildPicksStorageKey } from "@/lib/useRoundPicks";
 
 interface MyPicksProps {
+  round: number;
   games: RoundGameTip[];
 }
 
@@ -17,22 +17,22 @@ function buildInitial(games: RoundGameTip[]): UserPicks {
   return { winnerByGameId };
 }
 
-export function MyPicks({ games }: MyPicksProps) {
+export function MyPicks({ round, games }: MyPicksProps) {
   const [picks, setPicks] = useState<UserPicks>(() => buildInitial(games));
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(PICKS_KEY);
+    const saved = window.localStorage.getItem(buildPicksStorageKey(round));
     if (!saved) return;
     try {
       setPicks(JSON.parse(saved) as UserPicks);
     } catch {
       setPicks(buildInitial(games));
     }
-  }, [games]);
+  }, [games, round]);
 
   useEffect(() => {
-    window.localStorage.setItem(PICKS_KEY, JSON.stringify(picks));
-  }, [picks]);
+    window.localStorage.setItem(buildPicksStorageKey(round), JSON.stringify(picks));
+  }, [picks, round]);
 
   return (
     <section style={{ marginTop: 24 }}>

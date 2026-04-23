@@ -40,3 +40,7 @@ class TipResult:
     confidence: float
     predicted_margin: int
     odds: OddsSnapshot | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    actual_winner: str | None = None
+    actual_margin: int | None = None

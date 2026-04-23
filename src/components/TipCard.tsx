@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { RoundGameTip } from "@/lib/types";
+import { isModelCorrect, isUserCorrect, resolveActualWinner } from "@/lib/accuracyHelpers";
 
 interface TipCardProps {
   game: RoundGameTip;
+  userPick?: string;
 }
 
-export function TipCard({ game }: TipCardProps) {
+export function TipCard({ game, userPick }: TipCardProps) {
   const [overrideTip, setOverrideTip] = useState<string | null>(game.tipOverride?.tipTeam ?? null);
   const [overrideReason, setOverrideReason] = useState<string | null>(game.tipOverride?.reason ?? null);
 
@@ -79,6 +81,11 @@ export function TipCard({ game }: TipCardProps) {
     minute: "2-digit"
   });
 
+  const finalTipTeam = overrideTip ?? game.tipTeam;
+  const actualWinner = resolveActualWinner(game);
+  const modelCorrect = game.status === "finished" ? isModelCorrect({ ...game, tipTeam: finalTipTeam }) : null;
+  const userCorrect = game.status === "finished" ? isUserCorrect(game, userPick) : null;
+
   return (
     <article
       style={{
@@ -93,9 +100,36 @@ export function TipCard({ game }: TipCardProps) {
         {game.homeTeam} vs {game.awayTeam}
       </h3>
       <p style={{ margin: "0 0 8px", color: "#57606a" }}>{game.venue}</p>
+
+      {game.status === "finished" && typeof game.homeScore === "number" && typeof game.awayScore === "number" ? (
+        <p style={{ margin: "0 0 8px", color: "#0b0f14" }}>
+          Final:{" "}
+          <strong>
+            {game.homeTeam} {game.homeScore} – {game.awayScore} {game.awayTeam}
+          </strong>
+        </p>
+      ) : null}
+
       <p style={{ margin: "0 0 8px" }}>
-        Tip: <strong>{overrideTip ?? game.tipTeam}</strong> ({Math.round(game.confidence * 100)}%)
+        Model tip: <strong>{finalTipTeam}</strong> ({Math.round(game.confidence * 100)}%)
+        {game.status === "finished" && actualWinner ? (
+          <span style={{ marginLeft: 8, color: modelCorrect ? "#1a7f37" : "#cf222e" }}>
+            {modelCorrect ? "✓" : "✕"}
+          </span>
+        ) : null}
       </p>
+
+      {userPick ? (
+        <p style={{ margin: "0 0 8px" }}>
+          Your pick: <strong>{userPick}</strong>
+          {game.status === "finished" && actualWinner ? (
+            <span style={{ marginLeft: 8, color: userCorrect ? "#1a7f37" : "#cf222e" }}>
+              {userCorrect ? "✓" : "✕"}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
       <p style={{ margin: 0, color: "#57606a" }}>Predicted margin: {game.predictedMargin}</p>
       {overrideTip ? (
         <p style={{ margin: "8px 0 0", color: "#8250df", fontSize: 12 }}>

@@ -59,6 +59,38 @@ export function loadArchiveRounds(): ArchiveRoundEntry[] {
   );
 }
 
+export function loadAvailableRoundNumbers(season?: number): number[] {
+  const rounds = loadArchiveRounds()
+    .filter((entry) => (season ? entry.season === season : true))
+    .map((entry) => entry.round);
+
+  return Array.from(new Set(rounds)).sort((a, b) => a - b);
+}
+
+export function loadRoundTips(round: number): CurrentRoundTips | null {
+  const current = loadCurrentRoundTips();
+  if (round === current.round) return current;
+
+  const archiveDirExists = fs.existsSync(ARCHIVE_DIR);
+  if (!archiveDirExists) return null;
+
+  const roundFileName = `round_${round}.json`;
+  const roundFilePath = path.join(ARCHIVE_DIR, roundFileName);
+  if (fs.existsSync(roundFilePath)) {
+    return readTipsSnapshot(roundFilePath);
+  }
+
+  const candidates = fs
+    .readdirSync(ARCHIVE_DIR)
+    .filter((fileName) => fileName.endsWith(`_round_${round}.json`))
+    .sort();
+
+  if (candidates.length === 0) return null;
+
+  const newestCandidate = candidates[candidates.length - 1];
+  return readTipsSnapshot(path.join(ARCHIVE_DIR, newestCandidate));
+}
+
 function isCurrentRoundTips(payload: Partial<CurrentRoundTips>): payload is CurrentRoundTips {
   return (
     typeof payload.round === "number" &&
@@ -67,4 +99,14 @@ function isCurrentRoundTips(payload: Partial<CurrentRoundTips>): payload is Curr
     typeof payload.generatedAt === "string" &&
     Array.isArray(payload.games)
   );
+}
+
+function readTipsSnapshot(filePath: string): CurrentRoundTips | null {
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(raw) as Partial<CurrentRoundTips>;
+    return isCurrentRoundTips(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }

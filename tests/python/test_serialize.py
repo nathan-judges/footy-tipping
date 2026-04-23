@@ -35,3 +35,57 @@ def test_build_round_payload_includes_nrl_mapping_and_margin_pick() -> None:
     assert payload["marginGameId"] == "game-2"
     assert payload["games"][0]["nrlMatchId"] == 111
     assert payload["games"][1]["nrlSlug"] == "gamma-vs-delta"
+
+
+def test_build_round_payload_includes_result_fields_when_present() -> None:
+    tips = [
+        TipResult(
+            game_id="game-1",
+            nrl_match_id=None,
+            nrl_slug=None,
+            home_team="Alpha",
+            away_team="Beta",
+            venue="A Park",
+            kickoff_at="2026-04-24T09:50:00Z",
+            status="finished",
+            tip_team="Alpha",
+            confidence=0.6,
+            predicted_margin=4,
+            home_score=18,
+            away_score=10,
+            actual_winner="Alpha",
+            actual_margin=8,
+        )
+    ]
+
+    payload = build_round_payload(tips=tips, round_number=8, season=2026, model_version="test-v1")
+    game = payload["games"][0]
+    assert game["homeScore"] == 18
+    assert game["awayScore"] == 10
+    assert game["actualWinner"] == "Alpha"
+    assert game["actualMargin"] == 8
+
+
+def test_build_round_payload_omits_result_fields_when_none() -> None:
+    tips = [
+        TipResult(
+            game_id="game-1",
+            nrl_match_id=None,
+            nrl_slug=None,
+            home_team="Alpha",
+            away_team="Beta",
+            venue="A Park",
+            kickoff_at="2026-04-24T09:50:00Z",
+            status="finished",
+            tip_team="Alpha",
+            confidence=0.6,
+            predicted_margin=4,
+        )
+    ]
+
+    payload = build_round_payload(tips=tips, round_number=8, season=2026, model_version="test-v1")
+    game = payload["games"][0]
+    assert "homeScore" not in game
+    assert "awayScore" not in game
+    assert "actualWinner" not in game
+    assert "actualMargin" not in game

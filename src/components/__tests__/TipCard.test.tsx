@@ -38,4 +38,24 @@ describe("TipCard", () => {
       expect(screen.getByText(/Live override: Broncos/i)).toBeInTheDocument();
     });
   });
+
+  it("shows correctness for finished games when results present", () => {
+    render(
+      React.createElement(TipCard, {
+        game: {
+          ...makeGame(),
+          status: "finished",
+          kickoffAt: "2026-04-01T00:00:00Z",
+          homeScore: 10,
+          awayScore: 20,
+          tipTeam: "Storm"
+        },
+        userPick: "Broncos"
+      })
+    );
+
+    expect(screen.getByText(/Final:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Model tip:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your pick:/i)).toBeInTheDocument();
+  });
 });
