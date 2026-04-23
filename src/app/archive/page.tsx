@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { loadArchiveRounds } from "@/lib/loadArchive";
 
 export const metadata = {
@@ -10,40 +11,34 @@ export default function ArchivePage() {
   const rounds = loadArchiveRounds();
 
   return (
-    <main style={{ maxWidth: 920, margin: "0 auto", padding: "32px 16px" }}>
-      <h1 style={{ margin: "0 0 8px" }}>Baked Data Archive</h1>
-      <p style={{ margin: "0 0 20px", color: "#57606a" }}>
+    <main className="mx-auto max-w-[860px] px-4 pb-8 pt-6">
+      <h1 className="mb-2">Baked Data Archive</h1>
+      <p className="mb-5 text-muted-foreground">
         Historical snapshots from committed baked JSON. Latest rounds appear first.
       </p>
-      <p style={{ margin: "0 0 24px" }}>
+      <p className="mb-6">
         <Link href="/">Back to current round</Link>
       </p>
 
-      <section style={{ display: "grid", gap: 10 }}>
+      <section className="grid gap-2.5">
         {rounds.map((entry) => (
-          <article
-            key={entry.id}
-            style={{
-              background: "#fff",
-              border: "1px solid #d0d7de",
-              borderRadius: 10,
-              padding: 14
-            }}
-          >
-            <h2 style={{ margin: "0 0 6px", fontSize: 18 }}>
-              {entry.season} Round {entry.round}
-            </h2>
-            <p style={{ margin: "0 0 4px", color: "#57606a", fontSize: 14 }}>
-              Generated: {new Date(entry.generatedAt).toLocaleString("en-AU")}
-            </p>
-            <p style={{ margin: "0 0 4px", color: "#57606a", fontSize: 14 }}>
-              Model: {entry.modelVersion}
-            </p>
-            <p style={{ margin: 0, color: "#57606a", fontSize: 14 }}>
-              Games: {entry.gameCount}
-              {entry.marginGameId ? ` - margin suggestion game: ${entry.marginGameId}` : ""}
-            </p>
-          </article>
+          <Card key={entry.id}>
+            <CardContent>
+              <h2 className="mb-1.5 text-lg">
+                {entry.season} Round {entry.round}
+              </h2>
+              <p className="mb-1 text-sm text-muted-foreground">
+                Generated: {new Date(entry.generatedAt).toLocaleString("en-AU")}
+              </p>
+              <p className="mb-1 text-sm text-muted-foreground">
+                Model: {entry.modelVersion}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Games: {entry.gameCount}
+                {entry.marginGameId ? ` - margin suggestion game: ${entry.marginGameId}` : ""}
+              </p>
+            </CardContent>
+          </Card>
         ))}
       </section>
     </main>

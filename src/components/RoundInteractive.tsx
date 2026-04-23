@@ -4,7 +4,6 @@ import type { RoundGameTip } from "@/lib/types";
 import { useRoundPicks } from "@/lib/useRoundPicks";
 import { RoundSummary } from "@/components/RoundSummary";
 import { TipsList } from "@/components/TipsList";
-import { MyPicks } from "@/components/MyPicks";
 
 interface RoundInteractiveProps {
   round: number;
@@ -15,13 +14,13 @@ interface RoundInteractiveProps {
 }
 
 export function RoundInteractive({ round, season, games, showPicks = false, mode = "upcoming" }: RoundInteractiveProps) {
-  const { picks, hasSavedPicks } = useRoundPicks(round, games);
+  const { picks, hasSavedPicks, updateWinnerPick } = useRoundPicks(round, games);
+  void showPicks;
 
   return (
     <>
       <RoundSummary round={round} season={season} games={games} userPicks={picks} hasSavedPicks={hasSavedPicks} />
-      <TipsList games={games} mode={mode} userPicks={picks} />
-      {showPicks ? <MyPicks round={round} games={games} /> : null}
+      <TipsList games={games} mode={mode} userPicks={picks} onPickChange={updateWinnerPick} />
     </>
   );
 }

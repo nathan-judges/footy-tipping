@@ -31,19 +31,19 @@ export function MyPicks({ round, games }: MyPicksProps) {
   }, [picks, round]);
 
   return (
-    <section style={{ marginTop: 24 }}>
-      <h2 style={{ marginBottom: 12 }}>My Picks</h2>
-      <div style={{ display: "grid", gap: 10 }}>
+    <section className="mt-6">
+      <h2 className="mb-3">My Picks</h2>
+      <div className="grid gap-2.5">
         {games
           .filter((game) => game.status === "upcoming")
           .map((game) => (
             <label
               key={game.gameId}
-              style={{ background: "#fff", border: "1px solid #d0d7de", borderRadius: 10, padding: 12 }}
+              className="rounded-md border bg-card p-3"
             >
               {game.homeTeam} vs {game.awayTeam}
               <select
-                style={{ marginLeft: 8 }}
+                className="ml-2 rounded-md border bg-background px-2 py-1"
                 value={picks.winnerByGameId[game.gameId] ?? game.tipTeam}
                 onChange={(event) =>
                   setPicks((prev) => ({

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Footy Tipping",
@@ -14,13 +15,7 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-          background: "#f6f8fa"
-        }}
-      >
+      <body className="m-0 font-sans">
         {children}
         <SpeedInsights />
       </body>

@@ -16,9 +16,10 @@ export function RoundSelector({ rounds, selectedRound, label = "Round" }: RoundS
   const normalizedRounds = useMemo(() => Array.from(new Set(rounds)).sort((a, b) => a - b), [rounds]);
 
   return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <span style={{ color: "#57606a", fontSize: 14 }}>{label}</span>
+    <label className="inline-flex items-center gap-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
       <select
+        className="rounded-md border bg-background px-2 py-1"
         aria-label="Select round"
         value={selectedRound}
         onChange={(event) => {

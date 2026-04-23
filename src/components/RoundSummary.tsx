@@ -17,19 +17,11 @@ export function RoundSummary({ round, season, games, userPicks, hasSavedPicks }:
 
   if (total === 0) {
     return (
-      <section
-        style={{
-          background: "#fff",
-          border: "1px solid #d0d7de",
-          borderRadius: 10,
-          padding: 16,
-          marginBottom: 16
-        }}
-      >
-        <h2 style={{ margin: "0 0 10px" }}>
-          Round {round} Summary <span style={{ color: "#57606a", fontWeight: 500 }}>({season})</span>
+      <section className="mb-4 rounded-md border bg-card p-4">
+        <h2 className="mb-2.5">
+          Round {round} Summary <span className="font-medium text-muted-foreground">({season})</span>
         </h2>
-        <p style={{ margin: 0, color: "#57606a" }}>Round {round} has not started yet. Check back after the games!</p>
+        <p className="text-muted-foreground">Round {round} has not started yet. Check back after the games!</p>
       </section>
     );
   }
@@ -38,25 +30,17 @@ export function RoundSummary({ round, season, games, userPicks, hasSavedPicks }:
   const userPct = summary.userCorrect == null ? null : Math.round((summary.userCorrect / total) * 100);
 
   return (
-    <section
-      style={{
-        background: "#fff",
-        border: "1px solid #d0d7de",
-        borderRadius: 10,
-        padding: 16,
-        marginBottom: 16
-      }}
-    >
-      <h2 style={{ margin: "0 0 10px" }}>
-        Round {round} Summary <span style={{ color: "#57606a", fontWeight: 500 }}>({season})</span>
+    <section className="mb-4 rounded-md border bg-card p-4">
+      <h2 className="mb-2.5">
+        Round {round} Summary <span className="font-medium text-muted-foreground">({season})</span>
       </h2>
-      <p style={{ margin: "0 0 6px" }}>
+      <p className="mb-1.5">
         Model: <strong>{summary.modelCorrect}</strong>/<strong>{total}</strong> correct ({modelPct}%)
       </p>
-      <p style={{ margin: 0 }}>
+      <p>
         Your picks:{" "}
         {hasSavedPicks === false || summary.userCorrect == null ? (
-          <span style={{ color: "#57606a" }}>not set for this round</span>
+          <span className="text-muted-foreground">not set for this round</span>
         ) : (
           <>
             <strong>{summary.userCorrect}</strong>/<strong>{total}</strong> correct ({userPct}%)
