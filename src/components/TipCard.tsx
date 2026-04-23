@@ -1,27 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import type { RoundGameTip } from "@/lib/types";
 import { isModelCorrect, isUserCorrect, resolveActualWinner } from "@/lib/accuracyHelpers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getTeamIdentity } from "@/lib/teamData";
-import { TeamBadge } from "@/components/TeamBadge";
 
 interface TipCardProps {
   game: RoundGameTip;
   userPick?: string;
   onPickChange?: (gameId: string, pick: string) => void;
-}
-
-function TeamMark({ teamName, align = "left" }: { teamName: string; align?: "left" | "right" }) {
-  return (
-    <div className={`flex items-center gap-2 ${align === "left" ? "justify-start" : "justify-end"}`}>
-      {align === "right" ? <span className="font-semibold">{teamName}</span> : null}
-      <TeamBadge teamName={teamName} />
-      {align === "left" ? <span className="font-semibold">{teamName}</span> : null}
-    </div>
-  );
 }
 
 export function TipCard({ game, userPick, onPickChange }: TipCardProps) {
@@ -103,35 +93,101 @@ export function TipCard({ game, userPick, onPickChange }: TipCardProps) {
   const userCorrect = game.status === "finished" ? isUserCorrect(game, userPick) : null;
 
   const homeTeam = getTeamIdentity(game.homeTeam);
-  const teamVars = { "--team-primary": homeTeam.primary } as CSSProperties;
+  const awayTeam = getTeamIdentity(game.awayTeam);
+  const tipConfidencePct = Math.round(game.confidence * 100);
+  const homePct = finalTipTeam === game.homeTeam ? tipConfidencePct : 100 - tipConfidencePct;
+  const awayPct = 100 - homePct;
+  const teamVars = {
+    "--team-primary": homeTeam.primary,
+    "--home-color": homeTeam.primary,
+    "--away-color": awayTeam.primary,
+    "--split": `${homePct}%`
+  } as CSSProperties;
+  const selectedPick = userPick ?? "";
 
   return (
     <Card className="overflow-hidden" style={teamVars}>
       <div className="h-[3px] bg-[var(--team-primary)]" />
-      <CardContent>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">{kickoff}</p>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-center text-lg font-semibold text-foreground/80">{kickoff}</p>
           <div className="flex items-center gap-1.5">
             {isLocked ? <Badge variant="outline">🔒 Locked</Badge> : null}
             {!isLocked && userPick ? <Badge variant="secondary">✅ Saved</Badge> : null}
           </div>
         </div>
 
-        <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <TeamMark teamName={game.homeTeam} />
-          <span className="text-xs font-bold text-muted-foreground">VS</span>
-          <TeamMark teamName={game.awayTeam} align="right" />
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="justify-self-start text-center">
+            <button
+              type="button"
+              disabled={isLocked || !onPickChange}
+              aria-label={`Pick ${game.homeTeam}`}
+              className={`mb-2 h-7 w-7 rounded-full border-2 ${
+                selectedPick === game.homeTeam ? "border-black bg-black" : "border-black bg-white"
+              }`}
+              onClick={() => onPickChange?.(game.gameId, game.homeTeam)}
+            />
+            <Image
+              src={homeTeam.logoPath}
+              alt={game.homeTeam}
+              width={44}
+              height={44}
+              className="mx-auto mb-1 h-11 w-11 object-contain"
+            />
+            <p className="text-sm font-semibold">{game.homeTeam}</p>
+            <p className="text-xs text-muted-foreground">{homeTeam.shortName}</p>
+          </div>
+
+          <div className="min-w-[124px] text-center">
+            <div className="mb-1 flex items-center justify-center gap-2 text-3xl font-bold">
+              <span>{homePct}%</span>
+              <div
+                className="grid h-14 w-14 place-items-center rounded-full"
+                style={{
+                  background: "conic-gradient(var(--home-color) 0 var(--split), var(--away-color) var(--split) 100%)"
+                }}
+              >
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-[10px] font-bold leading-tight text-black">
+                  <span>VIEW</span>
+                  <span>STATS</span>
+                </div>
+              </div>
+              <span>{awayPct}%</span>
+            </div>
+          </div>
+
+          <div className="justify-self-end text-center">
+            <button
+              type="button"
+              disabled={isLocked || !onPickChange}
+              aria-label={`Pick ${game.awayTeam}`}
+              className={`mb-2 h-7 w-7 rounded-full border-2 ${
+                selectedPick === game.awayTeam ? "border-black bg-black" : "border-black bg-white"
+              }`}
+              onClick={() => onPickChange?.(game.gameId, game.awayTeam)}
+            />
+            <Image
+              src={awayTeam.logoPath}
+              alt={game.awayTeam}
+              width={44}
+              height={44}
+              className="mx-auto mb-1 h-11 w-11 object-contain"
+            />
+            <p className="text-sm font-semibold">{game.awayTeam}</p>
+            <p className="text-xs text-muted-foreground">{awayTeam.shortName}</p>
+          </div>
         </div>
 
-        <p className="mb-2 text-[13px] text-muted-foreground">{game.venue}</p>
+        <p className="text-center text-[13px] text-muted-foreground">{game.venue}</p>
 
         {game.status === "finished" && typeof game.homeScore === "number" && typeof game.awayScore === "number" ? (
-          <p className="mb-2 text-center text-lg font-bold">
+          <p className="text-center text-lg font-bold">
             Final: {game.homeScore} - {game.awayScore}
           </p>
         ) : null}
 
-        <p className="mb-2">
+        <p>
           Model tip: <strong>{finalTipTeam}</strong> ({Math.round(game.confidence * 100)}%)
           {game.status === "finished" && actualWinner ? (
             <span className={`ml-2 ${modelCorrect ? "text-green-700" : "text-red-600"}`}>
@@ -141,7 +197,7 @@ export function TipCard({ game, userPick, onPickChange }: TipCardProps) {
         </p>
 
         {userPick ? (
-          <p className="mb-2">
+          <p>
             Your pick: <strong>{userPick}</strong>
             {game.status === "finished" && actualWinner ? (
               <span className={`ml-2 ${userCorrect ? "text-green-700" : "text-red-600"}`}>
@@ -152,7 +208,7 @@ export function TipCard({ game, userPick, onPickChange }: TipCardProps) {
         ) : null}
 
         {!isLocked && onPickChange ? (
-          <label className="mb-2 block">
+          <label className="block">
             <span className="mb-1.5 block text-[13px] text-muted-foreground">Your pick</span>
             <select
               className="w-full rounded-md border bg-background px-2.5 py-2"
