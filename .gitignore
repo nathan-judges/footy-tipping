@@ -13,6 +13,10 @@ tsconfig.tsbuildinfo
 .DS_Store
 *.log
 
+# python
+__pycache__/
+*.py[cod]
+
 # env
 .env
 .env.local
