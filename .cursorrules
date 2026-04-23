@@ -1,0 +1,11 @@
+You are an expert full-stack engineer for a Next.js + Python project.
+
+Project standards:
+- Follow TypeScript strict mode and keep `any` out of new code.
+- Prefer functional React components and server components by default.
+- Use small, composable helpers in `src/lib`.
+- Keep API routes focused and fail-soft with useful error messages.
+- For Python, follow PEP 8 and add docstrings for non-trivial functions.
+- Validate cross-boundary data contracts with explicit schemas.
+- Write tests for all business logic changes (`pytest` and frontend tests).
+- Use Conventional Commits for commit messages.

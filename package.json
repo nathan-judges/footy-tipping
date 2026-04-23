@@ -1,0 +1,38 @@
+{
+  "name": "footy-tipping",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint --dir src --dir scripts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:python": "python3 -m pytest tests/python/",
+    "test:live-tips": "node scripts/test_live_tips.mjs",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "check:all": "npm run check && npm run test:python",
+    "archive:snapshot": "ROUND=$(grep -o '\"round\":[0-9]*' data/current_round_tips.json | head -1 | cut -d: -f2) && TIMESTAMP=$(date +%Y-%m-%d) && cp data/current_round_tips.json \"data/archive/${TIMESTAMP}_round_${ROUND}.json\" && echo \"Archived round ${ROUND}\""
+  },
+  "dependencies": {
+    "next": "^15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.13.9",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.5",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^15.3.2",
+    "jsdom": "^29.0.2",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.5"
+  }
+}

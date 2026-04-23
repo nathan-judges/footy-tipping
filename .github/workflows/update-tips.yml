@@ -1,0 +1,64 @@
+name: Update Baked Tips
+
+on:
+  schedule:
+    - cron: "0 0 * * 3"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run without writing/committing"
+        required: false
+        default: "false"
+      round:
+        description: "Round number (defaults to current script default)"
+        required: false
+      season:
+        description: "Season year (defaults to 2026)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+        run: python scripts/update_tips.py --dry-run
+
+      - name: Generate baked data
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python scripts/update_tips.py --write --round ${{ github.event.inputs.round || '1' }} --season ${{ github.event.inputs.season || '2026' }}
+
+      - name: Archive snapshot
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
+        run: |
+          ROUND=$(grep -o '"round":[0-9]*' data/current_round_tips.json | head -1 | cut -d: -f2)
+          TIMESTAMP=$(date +%Y-%m-%d)
+          mkdir -p data/archive
+          cp data/current_round_tips.json "data/archive/${TIMESTAMP}_round_${ROUND}.json"
+          echo "ROUND=${ROUND}" >> "$GITHUB_ENV"
+          echo "Archived snapshot for round ${ROUND}"
+
+      - name: Commit and push baked data
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
+        env:
+          GITHUB_BOT_NAME: tipping-bot[bot]
+          GITHUB_BOT_EMAIL: tipping-bot@users.noreply.github.com
+        run: |
+          git config user.name "${GITHUB_BOT_NAME}"
+          git config user.email "${GITHUB_BOT_EMAIL}"
+          git add data/
+          git commit -m "chore(data): update tips for round ${ROUND}" || echo "No changes to commit"
+          git push

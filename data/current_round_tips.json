@@ -1,0 +1,20 @@
+{
+  "round": 1,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-04-23T03:10:19Z",
+  "marginGameId": "2026-r01-g01",
+  "games": [
+    {
+      "gameId": "2026-r01-g01",
+      "homeTeam": "Broncos",
+      "awayTeam": "Storm",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-04-24T09:50:00Z",
+      "status": "upcoming",
+      "tipTeam": "Storm",
+      "confidence": 0.5402,
+      "predictedMargin": 1
+    }
+  ]
+}
