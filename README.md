@@ -5,7 +5,7 @@ Serverless-first NRL tipping app using baked JSON data, Next.js, GitHub, and Ver
 Current features:
 - Model tips with round-level `marginGameId` suggestion.
 - Ladder view from baked `data/ladder.json`.
-- Optional local "My Picks" state stored in browser `localStorage`.
+- Local picks stored in browser `localStorage` (winner picks + margin game/value).
 - Past rounds: completed rounds show final scores and accuracy for model + your picks (when results are present in baked data).
 - Edge endpoints for health, ladder, and live tip checks.
 
@@ -99,6 +99,11 @@ If the NRL API is temporarily unavailable, the pipeline falls back to checked-in
   - your saved picks and whether you were correct
   - a summary card at the top showing model and personal accuracy percentages
 - Picks are saved locally per round (no login required).
+
+## Docs
+
+- Data freshness & confidence: `docs/data-freshness.md`
+- 2026 season settings: `docs/season-2026.md`
 
 ### Tracking accuracy
 

@@ -12,9 +12,26 @@ interface TipCardProps {
   userPick?: string;
   onPickChange?: (gameId: string, team: string) => void;
   disablePicks?: boolean;
+  isMarginGame?: boolean;
+  modelMargin?: number;
+  marginPoints?: number;
+  onSetMarginGame?: () => void;
+  onMarginPointsChange?: (points: number | undefined) => void;
 }
 
-export function TipCard({ game, round, season, userPick, onPickChange, disablePicks = false }: TipCardProps) {
+export function TipCard({
+  game,
+  round,
+  season,
+  userPick,
+  onPickChange,
+  disablePicks = false,
+  isMarginGame = false,
+  modelMargin,
+  marginPoints,
+  onSetMarginGame,
+  onMarginPointsChange
+}: TipCardProps) {
   const [overrideTip, setOverrideTip] = useState<string | null>(game.tipOverride?.tipTeam ?? null);
   const [overrideReason, setOverrideReason] = useState<string | null>(game.tipOverride?.reason ?? null);
 
@@ -101,20 +118,37 @@ export function TipCard({ game, round, season, userPick, onPickChange, disablePi
     "--split": `${homePct}%`
   } as CSSProperties;
 
+  const isUpcoming = game.status === "upcoming";
+
   return (
     <div className="rounded-md border bg-card p-3.5" style={teamVars}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="text-sm text-muted-foreground">
           {kickoff} · {game.venue}
         </div>
-        <a
-          className="text-sm font-semibold text-foreground/80 underline-offset-4 hover:underline"
-          href={getNrlMatchUrl(game, season, round)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          VIEW STATS →
-        </a>
+        <div className="flex items-center gap-2">
+          {isUpcoming ? (
+            <button
+              type="button"
+              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                isMarginGame ? "bg-black text-white" : "bg-background"
+              }`}
+              disabled={disablePicks || !onSetMarginGame}
+              onClick={() => onSetMarginGame?.()}
+              title="Set as margin game"
+            >
+              Margin
+            </button>
+          ) : null}
+          <a
+            className="text-sm font-semibold text-foreground/80 underline-offset-4 hover:underline"
+            href={getNrlMatchUrl(game, season, round)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            VIEW STATS →
+          </a>
+        </div>
       </div>
 
       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -167,6 +201,35 @@ export function TipCard({ game, round, season, userPick, onPickChange, disablePi
         <p className="mt-2 text-xs text-violet-600">
           Live override: {overrideTip} ({overrideReason ?? "updated"})
         </p>
+      ) : null}
+
+      {isMarginGame && isUpcoming ? (
+        <div className="mt-3 rounded-md border bg-background p-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div>
+              <span className="text-xs text-muted-foreground">Model spread</span>
+              <div className="mt-1.5 rounded-md border bg-card px-2.5 py-2 text-sm tabular-nums">
+                {typeof modelMargin === "number"
+                  ? `${modelMargin >= 0 ? "+" : ""}${modelMargin}`
+                  : "—"}
+              </div>
+            </div>
+            <label className="block md:col-span-2">
+              <span className="text-xs text-muted-foreground">Your margin</span>
+              <input
+                type="number"
+                className="mt-1.5 w-full rounded-md border bg-card px-2.5 py-2"
+                value={marginPoints ?? ""}
+                disabled={disablePicks || !onMarginPointsChange}
+                onChange={(event) =>
+                  onMarginPointsChange?.(
+                    event.target.value === "" ? undefined : Number(event.target.value)
+                  )
+                }
+              />
+            </label>
+          </div>
+        </div>
       ) : null}
     </div>
   );

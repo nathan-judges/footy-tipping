@@ -4,17 +4,19 @@ import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 interface RoundSelectorProps {
-  rounds: number[];
+  totalRounds: number;
+  bakedRounds: number[];
   selectedRound: number;
   currentRound: number;
   label?: string;
 }
 
-export function RoundSelector({ rounds, selectedRound, currentRound, label = "Round" }: RoundSelectorProps) {
+export function RoundSelector({ totalRounds, bakedRounds, selectedRound, currentRound, label = "Round" }: RoundSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const normalizedRounds = useMemo(() => Array.from(new Set(rounds)).sort((a, b) => a - b), [rounds]);
+  const bakedSet = useMemo(() => new Set(bakedRounds), [bakedRounds]);
+  const rounds = useMemo(() => Array.from({ length: totalRounds }, (_, idx) => idx + 1), [totalRounds]);
 
   return (
     <label className="inline-flex items-center gap-2">
@@ -31,13 +33,16 @@ export function RoundSelector({ rounds, selectedRound, currentRound, label = "Ro
           router.push(nextHref);
         }}
       >
-        {normalizedRounds.map((round) => {
+        {rounds.map((round) => {
           const labelSuffix =
             round < currentRound ? "Past" : round === currentRound ? "Current" : "Future (Preliminary)";
           const isFuture = round > currentRound;
+          const isBaked = bakedSet.has(round);
+          const availability = isBaked ? "" : " · Not baked yet";
           return (
             <option key={round} value={round} className={isFuture ? "text-muted-foreground italic" : undefined}>
               {round} — {labelSuffix}
+              {availability}
             </option>
           );
         })}

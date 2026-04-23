@@ -55,6 +55,13 @@ export interface LastUpdateMeta {
   status: "ok" | "stale" | "error";
 }
 
+export interface SeasonMeta {
+  season: number;
+  totalRegularRounds: number;
+  source?: string;
+  notes?: string;
+}
+
 export interface LadderRow {
   rank: number;
   team: string;

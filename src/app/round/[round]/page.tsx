@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RoundView } from "@/components/RoundView";
 import { RoundSelector } from "@/components/RoundSelector";
 import { loadAvailableRoundNumbers, loadRoundTips } from "@/lib/loadArchive";
-import { loadCurrentRoundTips, loadLadder } from "@/lib/loadTips";
+import { loadCurrentRoundTips, loadLadder, loadLastUpdateMeta, loadSeasonMeta } from "@/lib/loadTips";
 import { Ladder } from "@/components/Ladder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -20,15 +20,25 @@ function formatRoundUpdatedLabel(timestamp: string): string {
   });
 }
 
+function computeFreshness(lastSuccessfulUpdateAt: string): { label: string; variant: "fresh" | "stale" } {
+  const updatedMs = new Date(lastSuccessfulUpdateAt).getTime();
+  const ageMs = Date.now() - updatedMs;
+  const sixHours = 6 * 60 * 60 * 1000;
+  return ageMs <= sixHours ? { label: "Fresh", variant: "fresh" } : { label: "Stale", variant: "stale" };
+}
+
 export default async function RoundPage({ params }: RoundPageProps) {
   const { round: roundParam } = await params;
   const round = Number(roundParam);
 
   const current = loadCurrentRoundTips();
   const ladder = loadLadder();
+  const seasonMeta = loadSeasonMeta();
+  const lastUpdate = loadLastUpdateMeta();
+  const freshness = computeFreshness(lastUpdate.lastSuccessfulUpdateAt);
 
   const tips = Number.isFinite(round) ? loadRoundTips(round) : null;
-  const availableRounds = loadAvailableRoundNumbers(current.season);
+  const bakedRounds = loadAvailableRoundNumbers(current.season);
   const selectedRound = tips?.round ?? current.round;
   const isFuture = tips != null && tips.round > current.round;
 
@@ -38,13 +48,28 @@ export default async function RoundPage({ params }: RoundPageProps) {
         <div>
           <h1 className="mb-2">NRL Tipping</h1>
           {tips ? (
-            <p className="mb-2 text-muted-foreground">
-              Round {selectedRound} ({current.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
-            </p>
+            <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+              <p className="m-0">
+                Round {selectedRound} ({current.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
+              </p>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                  freshness.variant === "fresh" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"
+                }`}
+                title={`Last successful update: ${new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")} (${lastUpdate.source})`}
+              >
+                {freshness.label}
+              </span>
+            </div>
           ) : <p className="mb-2 text-muted-foreground">Round {selectedRound} ({current.season})</p>}
         </div>
 
-        <RoundSelector rounds={availableRounds} selectedRound={selectedRound} currentRound={current.round} />
+        <RoundSelector
+          totalRounds={seasonMeta.totalRegularRounds}
+          bakedRounds={bakedRounds}
+          selectedRound={selectedRound}
+          currentRound={current.round}
+        />
       </div>
 
       <p className="mb-6 mt-2">
