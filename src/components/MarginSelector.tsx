@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { RoundGameTip } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
 
 const MARGIN_KEY = "footy_margin_pick_v1";
 
@@ -37,16 +38,17 @@ export function MarginSelector({ games, suggestedGameId }: MarginSelectorProps) 
   }, [state]);
 
   return (
-    <section style={{ margin: "24px 0", background: "#fff", border: "1px solid #d0d7de", borderRadius: 10, padding: 16 }}>
-      <h2 style={{ marginTop: 0 }}>Select Your Margin</h2>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
-        Pick one game for your round margin. Suggested game: <strong>{suggestedGameId ?? "n/a"}</strong>
-      </p>
-      <div style={{ display: "grid", gap: 10 }}>
-        <label>
-          Margin game
+    <Card className="my-[18px]">
+      <CardContent>
+        <h2 className="mt-0">Select Your Margin</h2>
+        <p className="mt-0 text-muted-foreground">
+          Pick one game for your round margin. Suggested game: <strong>{suggestedGameId ?? "n/a"}</strong>
+        </p>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-2.5">
+          <label>
+            <span className="mr-2">Margin game</span>
           <select
-            style={{ marginLeft: 8 }}
+            className="mt-1.5 w-full rounded-md border bg-background px-2.5 py-2"
             value={state.marginGameId ?? ""}
             onChange={(event) => setState((prev) => ({ ...prev, marginGameId: event.target.value || undefined }))}
           >
@@ -57,22 +59,23 @@ export function MarginSelector({ games, suggestedGameId }: MarginSelectorProps) 
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Predicted margin
-          <input
-            type="number"
-            style={{ marginLeft: 8, width: 90 }}
-            value={state.marginPoints ?? ""}
-            onChange={(event) =>
-              setState((prev) => ({
-                ...prev,
-                marginPoints: event.target.value ? Number(event.target.value) : undefined
-              }))
-            }
-          />
-        </label>
-      </div>
-    </section>
+          </label>
+          <label>
+            <span className="mr-2">Predicted margin</span>
+            <input
+              type="number"
+              className="mt-1.5 w-full rounded-md border bg-background px-2.5 py-2"
+              value={state.marginPoints ?? ""}
+              onChange={(event) =>
+                setState((prev) => ({
+                  ...prev,
+                  marginPoints: event.target.value ? Number(event.target.value) : undefined
+                }))
+              }
+            />
+          </label>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

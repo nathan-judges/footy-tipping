@@ -1,4 +1,6 @@
 import type { LadderData } from "@/lib/types";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { getTeamIdentity } from "@/lib/teamData";
 
 interface LadderProps {
   ladder: LadderData;
@@ -6,36 +8,51 @@ interface LadderProps {
 
 export function Ladder({ ladder }: LadderProps) {
   return (
-    <section style={{ marginTop: 28 }}>
-      <h2 style={{ marginBottom: 12 }}>Ladder</h2>
-      <div style={{ overflowX: "auto", background: "#fff", border: "1px solid #d0d7de", borderRadius: 10 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
+    <section className="mt-[18px]">
+      <Card>
+        <CardHeader>
+          <h2>Ladder</h2>
+        </CardHeader>
+        <CardContent className="overflow-x-auto pt-2.5">
+          <table className="w-full border-collapse text-sm">
+            <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: 10 }}>#</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Team</th>
-              <th style={{ textAlign: "left", padding: 10 }}>P</th>
-              <th style={{ textAlign: "left", padding: 10 }}>W</th>
-              <th style={{ textAlign: "left", padding: 10 }}>L</th>
-              <th style={{ textAlign: "left", padding: 10 }}>+/-</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Pts</th>
+              <th className="p-2.5 text-left">#</th>
+              <th className="p-2.5 text-left">Team</th>
+              <th className="p-2.5 text-left">P</th>
+              <th className="p-2.5 text-left">W</th>
+              <th className="p-2.5 text-left">L</th>
+              <th className="p-2.5 text-left">+/-</th>
+              <th className="p-2.5 text-left">Pts</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             {ladder.rows.map((row) => (
-              <tr key={row.team} style={{ borderTop: "1px solid #d8dee4" }}>
-                <td style={{ padding: 10 }}>{row.rank}</td>
-                <td style={{ padding: 10 }}>{row.team}</td>
-                <td style={{ padding: 10 }}>{row.played}</td>
-                <td style={{ padding: 10 }}>{row.wins}</td>
-                <td style={{ padding: 10 }}>{row.losses}</td>
-                <td style={{ padding: 10 }}>{row.pointsDiff}</td>
-                <td style={{ padding: 10 }}>{row.competitionPoints}</td>
+              <tr key={row.team} className="border-t">
+                <td className="p-2.5">{row.rank}</td>
+                <td className="p-2.5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: getTeamIdentity(row.team).primary }}
+                    />
+                    <span className="font-medium">{row.team}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      {getTeamIdentity(row.team).shortName}
+                    </span>
+                  </div>
+                </td>
+                <td className="p-2.5">{row.played}</td>
+                <td className="p-2.5">{row.wins}</td>
+                <td className="p-2.5">{row.losses}</td>
+                <td className="p-2.5">{row.pointsDiff}</td>
+                <td className="p-2.5">{row.competitionPoints}</td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </section>
   );
 }

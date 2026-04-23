@@ -9,11 +9,8 @@ export function buildPicksStorageKey(round: number) {
 }
 
 function buildInitial(games: RoundGameTip[]): UserPicks {
-  const winnerByGameId: Record<string, string> = {};
-  games.forEach((game) => {
-    winnerByGameId[game.gameId] = game.tipTeam;
-  });
-  return { winnerByGameId };
+  void games;
+  return { winnerByGameId: {} };
 }
 
 export function useRoundPicks(round: number, games: RoundGameTip[]) {
@@ -32,11 +29,18 @@ export function useRoundPicks(round: number, games: RoundGameTip[]) {
     setHasSavedPicks(true);
   }, [games, round, storageKey]);
 
-  useEffect(() => {
-    saveUserPicksForRound(round, picks);
+  function updateWinnerPick(gameId: string, team: string) {
+    setPicks((prev) => {
+      const next = {
+        ...prev,
+        winnerByGameId: { ...prev.winnerByGameId, [gameId]: team }
+      };
+      saveUserPicksForRound(round, next);
+      return next;
+    });
     setHasSavedPicks(true);
-  }, [picks, round, storageKey]);
+  }
 
-  return { picks, setPicks, hasSavedPicks, storageKey };
+  return { picks, setPicks, hasSavedPicks, storageKey, updateWinnerPick };
 }
 

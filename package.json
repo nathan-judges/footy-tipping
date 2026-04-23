@@ -17,9 +17,15 @@
     "archive:snapshot": "ROUND=$(node -e \"const fs=require('fs');const data=JSON.parse(fs.readFileSync('data/current_round_tips.json','utf8'));process.stdout.write(String(data.round ?? ''));\" ) && TIMESTAMP=$(date +%Y-%m-%d) && mkdir -p data/archive && cp data/current_round_tips.json \"data/archive/${TIMESTAMP}_round_${ROUND}.json\" && cp data/current_round_tips.json \"data/archive/round_${ROUND}.json\" && echo \"Archived round ${ROUND}\""
   },
   "dependencies": {
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@vercel/speed-insights": "^2.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "next": "^15.5.15",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -29,9 +35,13 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
+    "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.15",
     "jsdom": "^29.0.2",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.2.4",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.2",
     "vitest": "^4.1.5"
   }

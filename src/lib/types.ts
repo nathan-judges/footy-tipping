@@ -44,6 +44,7 @@ export interface CurrentRoundTips {
   season: number;
   modelVersion: string;
   generatedAt: string;
+  lastUpdated?: string;
   marginGameId?: string;
   games: RoundGameTip[];
 }
@@ -52,6 +53,13 @@ export interface LastUpdateMeta {
   lastSuccessfulUpdateAt: string;
   source: string;
   status: "ok" | "stale" | "error";
+}
+
+export interface SeasonMeta {
+  season: number;
+  totalRegularRounds: number;
+  source?: string;
+  notes?: string;
 }
 
 export interface LadderRow {

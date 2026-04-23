@@ -39,11 +39,7 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python scripts/update_tips.py --write --round ${{ github.event.inputs.round || '1' }} --season ${{ github.event.inputs.season || '2026' }}
-
-      - name: Archive snapshot
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
-        run: npm run archive:snapshot
+        run: python scripts/update_tips.py --write --round ${{ github.event.inputs.round || 'current' }} --season ${{ github.event.inputs.season || '2026' }} --future-rounds 27
 
       - name: Commit and push baked data
         if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}

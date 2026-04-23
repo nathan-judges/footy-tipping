@@ -32,14 +32,14 @@ describe("TipCard", () => {
       )
     );
 
-    render(React.createElement(TipCard, { game: makeGame() }));
+    render(React.createElement(TipCard, { game: makeGame(), round: 1, season: 2026 }));
 
     await waitFor(() => {
       expect(screen.getByText(/Live override: Broncos/i)).toBeInTheDocument();
     });
   });
 
-  it("shows correctness for finished games when results present", () => {
+  it("renders minimal matchup row", () => {
     render(
       React.createElement(TipCard, {
         game: {
@@ -50,12 +50,14 @@ describe("TipCard", () => {
           awayScore: 20,
           tipTeam: "Storm"
         },
-        userPick: "Broncos"
+        round: 1,
+        season: 2026
       })
     );
 
-    expect(screen.getByText(/Final:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Model tip:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Your pick:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Suncorp Stadium/i)).toBeInTheDocument();
+    expect(screen.getByText(/VIEW STATS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Broncos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Storm/i)).toBeInTheDocument();
   });
 });

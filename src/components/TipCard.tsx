@@ -1,15 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { RoundGameTip } from "@/lib/types";
-import { isModelCorrect, isUserCorrect, resolveActualWinner } from "@/lib/accuracyHelpers";
+import { getTeamIdentity } from "@/lib/teamData";
+import { getNrlMatchUrl } from "@/lib/nrlLinks";
 
 interface TipCardProps {
+  round: number;
+  season: number;
   game: RoundGameTip;
   userPick?: string;
+  onPickChange?: (gameId: string, team: string) => void;
+  disablePicks?: boolean;
+  isMarginGame?: boolean;
+  modelMargin?: number;
+  marginPoints?: number;
+  onSetMarginGame?: () => void;
+  onMarginPointsChange?: (points: number | undefined) => void;
 }
 
-export function TipCard({ game, userPick }: TipCardProps) {
+export function TipCard({
+  game,
+  round,
+  season,
+  userPick,
+  onPickChange,
+  disablePicks = false,
+  isMarginGame = false,
+  modelMargin,
+  marginPoints,
+  onSetMarginGame,
+  onMarginPointsChange
+}: TipCardProps) {
   const [overrideTip, setOverrideTip] = useState<string | null>(game.tipOverride?.tipTeam ?? null);
   const [overrideReason, setOverrideReason] = useState<string | null>(game.tipOverride?.reason ?? null);
 
@@ -82,60 +104,133 @@ export function TipCard({ game, userPick }: TipCardProps) {
   });
 
   const finalTipTeam = overrideTip ?? game.tipTeam;
-  const actualWinner = resolveActualWinner(game);
-  const modelCorrect = game.status === "finished" ? isModelCorrect({ ...game, tipTeam: finalTipTeam }) : null;
-  const userCorrect = game.status === "finished" ? isUserCorrect(game, userPick) : null;
+
+  const homeTeam = getTeamIdentity(game.homeTeam);
+  const awayTeam = getTeamIdentity(game.awayTeam);
+  const tipConfidencePct = Math.round(game.confidence * 100);
+  const homePct = finalTipTeam === game.homeTeam ? tipConfidencePct : 100 - tipConfidencePct;
+  const awayPct = 100 - homePct;
+  const selectedPick = userPick ?? "";
+  const teamVars = {
+    "--team-primary": homeTeam.primary,
+    "--home-color": homeTeam.primary,
+    "--away-color": awayTeam.primary,
+    "--split": `${homePct}%`
+  } as CSSProperties;
+
+  const isUpcoming = game.status === "upcoming";
 
   return (
-    <article
-      style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 10,
-        padding: 16,
-        background: "#fff"
-      }}
-    >
-      <p style={{ margin: 0, fontSize: 12, color: "#57606a" }}>{kickoff}</p>
-      <h3 style={{ margin: "8px 0 4px" }}>
-        {game.homeTeam} vs {game.awayTeam}
-      </h3>
-      <p style={{ margin: "0 0 8px", color: "#57606a" }}>{game.venue}</p>
-
-      {game.status === "finished" && typeof game.homeScore === "number" && typeof game.awayScore === "number" ? (
-        <p style={{ margin: "0 0 8px", color: "#0b0f14" }}>
-          Final:{" "}
-          <strong>
-            {game.homeTeam} {game.homeScore} – {game.awayScore} {game.awayTeam}
-          </strong>
-        </p>
-      ) : null}
-
-      <p style={{ margin: "0 0 8px" }}>
-        Model tip: <strong>{finalTipTeam}</strong> ({Math.round(game.confidence * 100)}%)
-        {game.status === "finished" && actualWinner ? (
-          <span style={{ marginLeft: 8, color: modelCorrect ? "#1a7f37" : "#cf222e" }}>
-            {modelCorrect ? "✓" : "✕"}
-          </span>
-        ) : null}
-      </p>
-
-      {userPick ? (
-        <p style={{ margin: "0 0 8px" }}>
-          Your pick: <strong>{userPick}</strong>
-          {game.status === "finished" && actualWinner ? (
-            <span style={{ marginLeft: 8, color: userCorrect ? "#1a7f37" : "#cf222e" }}>
-              {userCorrect ? "✓" : "✕"}
-            </span>
+    <div className="rounded-md border bg-card p-3.5" style={teamVars}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="text-sm text-muted-foreground">
+          {kickoff} · {game.venue}
+        </div>
+        <div className="flex items-center gap-2">
+          {isUpcoming ? (
+            <button
+              type="button"
+              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                isMarginGame ? "bg-black text-white" : "bg-background"
+              }`}
+              disabled={disablePicks || !onSetMarginGame}
+              onClick={() => onSetMarginGame?.()}
+              title="Set as margin game"
+            >
+              Margin
+            </button>
           ) : null}
-        </p>
-      ) : null}
+          <a
+            className="text-sm font-semibold text-foreground/80 underline-offset-4 hover:underline"
+            href={getNrlMatchUrl(game, season, round)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            VIEW STATS →
+          </a>
+        </div>
+      </div>
 
-      <p style={{ margin: 0, color: "#57606a" }}>Predicted margin: {game.predictedMargin}</p>
+      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="min-w-0">
+          <button
+            type="button"
+            className="inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
+            disabled={!onPickChange || disablePicks}
+            style={
+              selectedPick === game.homeTeam
+                ? { backgroundColor: homeTeam.primary, color: "#fff", borderColor: homeTeam.primary }
+                : undefined
+            }
+            onClick={() => onPickChange?.(game.gameId, game.homeTeam)}
+          >
+            <span className="truncate">{game.homeTeam}</span>
+            <span className={selectedPick === game.homeTeam ? "text-white/85" : "text-muted-foreground"}>({homeTeam.shortName})</span>
+          </button>
+        </div>
+
+        <div className="min-w-[140px]">
+          <div className="flex items-center justify-center gap-2 text-sm font-semibold tabular-nums">
+            <span className="text-muted-foreground">{homePct}%</span>
+            <div className="relative h-2 w-[84px] overflow-hidden rounded-full bg-muted">
+              <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--home-color) 0 var(--split), var(--away-color) var(--split) 100%)" }} />
+            </div>
+            <span className="text-muted-foreground">{awayPct}%</span>
+          </div>
+        </div>
+
+        <div className="min-w-0 text-right">
+          <button
+            type="button"
+            className="ml-auto inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
+            disabled={!onPickChange || disablePicks}
+            style={
+              selectedPick === game.awayTeam
+                ? { backgroundColor: awayTeam.primary, color: "#fff", borderColor: awayTeam.primary }
+                : undefined
+            }
+            onClick={() => onPickChange?.(game.gameId, game.awayTeam)}
+          >
+            <span className={selectedPick === game.awayTeam ? "text-white/85" : "text-muted-foreground"}>({awayTeam.shortName})</span>
+            <span className="truncate">{game.awayTeam}</span>
+          </button>
+        </div>
+      </div>
+
       {overrideTip ? (
-        <p style={{ margin: "8px 0 0", color: "#8250df", fontSize: 12 }}>
+        <p className="mt-2 text-xs text-violet-600">
           Live override: {overrideTip} ({overrideReason ?? "updated"})
         </p>
       ) : null}
-    </article>
+
+      {isMarginGame && isUpcoming ? (
+        <div className="mt-3 rounded-md border bg-background p-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div>
+              <span className="text-xs text-muted-foreground">Model spread</span>
+              <div className="mt-1.5 rounded-md border bg-card px-2.5 py-2 text-sm tabular-nums">
+                {typeof modelMargin === "number"
+                  ? `${modelMargin >= 0 ? "+" : ""}${modelMargin}`
+                  : "—"}
+              </div>
+            </div>
+            <label className="block md:col-span-2">
+              <span className="text-xs text-muted-foreground">Your margin</span>
+              <input
+                type="number"
+                className="mt-1.5 w-full rounded-md border bg-card px-2.5 py-2"
+                value={marginPoints ?? ""}
+                disabled={disablePicks || !onMarginPointsChange}
+                onChange={(event) =>
+                  onMarginPointsChange?.(
+                    event.target.value === "" ? undefined : Number(event.target.value)
+                  )
+                }
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
