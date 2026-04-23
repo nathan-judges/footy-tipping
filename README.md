@@ -6,6 +6,7 @@ Current features:
 - Model tips with round-level `marginGameId` suggestion.
 - Ladder view from baked `data/ladder.json`.
 - Optional local "My Picks" state stored in browser `localStorage`.
+- Past rounds: completed rounds show final scores and accuracy for model + your picks (when results are present in baked data).
 - Edge endpoints for health, ladder, and live tip checks.
 
 ## Local development
@@ -58,6 +59,19 @@ To run commit flow (requires bot env vars):
 
 - `python scripts/update_tips.py --write --commit`
 
+### Fetching live NRL data
+
+The Python pipeline now attempts to pull fixtures and ladder data directly from `nrl.com`:
+
+- `python scripts/update_tips.py --write --round 8 --season 2026`
+- `npm run archive:snapshot`
+
+To backfill multiple rounds in one command:
+
+- `python scripts/update_tips.py --write --season 2026 --archive-through 8`
+
+If the NRL API is temporarily unavailable, the pipeline falls back to checked-in seed data.
+
 ## Python tests
 
 - `pip install -r requirements.txt`
@@ -75,3 +89,21 @@ To run commit flow (requires bot env vars):
 - Route: `/archive`
 - Data source: committed JSON snapshots in `data/archive/*.json` plus current round fallback from `data/current_round_tips.json`.
 - Snapshot format should match `current_round_tips.json`.
+
+## Past rounds & accuracy
+
+- Use the round selector to navigate to any archived round.
+- For completed rounds (where baked snapshots include results), you will see:
+  - final scores on each game
+  - a ✓/✕ indicator for whether the model tip was correct
+  - your saved picks and whether you were correct
+  - a summary card at the top showing model and personal accuracy percentages
+- Picks are saved locally per round (no login required).
+
+### Tracking accuracy
+
+- For completed rounds, the app displays:
+  - model accuracy (how many winners the algorithm predicted correctly)
+  - your accuracy (how many of your saved picks were correct)
+- Game cards show a correctness indicator for model and your picks.
+- All picks are saved locally in your browser.

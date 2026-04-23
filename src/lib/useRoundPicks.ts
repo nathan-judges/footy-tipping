@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { RoundGameTip, UserPicks } from "@/lib/types";
+import { getUserPicksForRound, getUserPicksStorageKey, saveUserPicksForRound } from "@/lib/userPicks";
 
 export function buildPicksStorageKey(round: number) {
-  return `nrl_tipping_picks_round_${round}`;
+  return getUserPicksStorageKey(round);
 }
 
 function buildInitial(games: RoundGameTip[]): UserPicks {
@@ -21,26 +22,20 @@ export function useRoundPicks(round: number, games: RoundGameTip[]) {
   const [picks, setPicks] = useState<UserPicks>(() => buildInitial(games));
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
+    const saved = getUserPicksForRound(round);
     if (!saved) {
       setHasSavedPicks(false);
       setPicks(buildInitial(games));
       return;
     }
-    try {
-      const parsed = JSON.parse(saved) as UserPicks;
-      setPicks(parsed);
-      setHasSavedPicks(true);
-    } catch {
-      setHasSavedPicks(false);
-      setPicks(buildInitial(games));
-    }
-  }, [games, storageKey]);
+    setPicks(saved);
+    setHasSavedPicks(true);
+  }, [games, round, storageKey]);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(picks));
+    saveUserPicksForRound(round, picks);
     setHasSavedPicks(true);
-  }, [picks, storageKey]);
+  }, [picks, round, storageKey]);
 
   return { picks, setPicks, hasSavedPicks, storageKey };
 }

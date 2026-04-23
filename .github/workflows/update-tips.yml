@@ -43,13 +43,7 @@ jobs:
 
       - name: Archive snapshot
         if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
-        run: |
-          ROUND=$(grep -o '"round":[0-9]*' data/current_round_tips.json | head -1 | cut -d: -f2)
-          TIMESTAMP=$(date +%Y-%m-%d)
-          mkdir -p data/archive
-          cp data/current_round_tips.json "data/archive/${TIMESTAMP}_round_${ROUND}.json"
-          echo "ROUND=${ROUND}" >> "$GITHUB_ENV"
-          echo "Archived snapshot for round ${ROUND}"
+        run: npm run archive:snapshot
 
       - name: Commit and push baked data
         if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
@@ -57,6 +51,7 @@ jobs:
           GITHUB_BOT_NAME: tipping-bot[bot]
           GITHUB_BOT_EMAIL: tipping-bot@users.noreply.github.com
         run: |
+          ROUND=$(node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('data/current_round_tips.json','utf8'));process.stdout.write(String(data.round ?? 'unknown'));")
           git config user.name "${GITHUB_BOT_NAME}"
           git config user.email "${GITHUB_BOT_EMAIL}"
           git add data/

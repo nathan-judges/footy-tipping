@@ -53,6 +53,10 @@ def predict_fixture(fixture: Fixture) -> TipResult:
             confidence=0.0,
             predicted_margin=0,
             odds=None,
+            home_score=fixture.home_score,
+            away_score=fixture.away_score,
+            actual_winner=fixture.actual_winner,
+            actual_margin=fixture.actual_margin,
         )
 
     base_tip, confidence, margin = _elo_tip(fixture)
