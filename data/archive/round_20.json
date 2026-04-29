@@ -1,0 +1,106 @@
+{
+  "round": 20,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-04-29T02:03:33Z",
+  "lastUpdated": "2026-04-29T02:03:33Z",
+  "marginGameId": "2026-r20-g06",
+  "games": [
+    {
+      "gameId": "2026-r20-g01",
+      "homeTeam": "Panthers",
+      "awayTeam": "Broncos",
+      "venue": "CommBank Stadium",
+      "kickoffAt": "2026-07-16T09:50:00Z",
+      "status": "upcoming",
+      "tipTeam": "Panthers",
+      "confidence": 0.563,
+      "predictedMargin": 2,
+      "nrlSlug": "panthers-v-broncos"
+    },
+    {
+      "gameId": "2026-r20-g02",
+      "homeTeam": "Sharks",
+      "awayTeam": "Knights",
+      "venue": "Ocean Protect Stadium",
+      "kickoffAt": "2026-07-17T08:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Knights",
+      "confidence": 0.5459,
+      "predictedMargin": 1,
+      "nrlSlug": "sharks-v-knights"
+    },
+    {
+      "gameId": "2026-r20-g03",
+      "homeTeam": "Roosters",
+      "awayTeam": "Storm",
+      "venue": "Allianz Stadium",
+      "kickoffAt": "2026-07-17T10:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Roosters",
+      "confidence": 0.6763,
+      "predictedMargin": 6,
+      "nrlSlug": "roosters-v-storm"
+    },
+    {
+      "gameId": "2026-r20-g04",
+      "homeTeam": "Raiders",
+      "awayTeam": "Rabbitohs",
+      "venue": "GIO Stadium",
+      "kickoffAt": "2026-07-18T05:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Rabbitohs",
+      "confidence": 0.5686,
+      "predictedMargin": 2,
+      "nrlSlug": "raiders-v-rabbitohs"
+    },
+    {
+      "gameId": "2026-r20-g05",
+      "homeTeam": "Warriors",
+      "awayTeam": "Dragons",
+      "venue": "Go Media Stadium",
+      "kickoffAt": "2026-07-18T07:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Warriors",
+      "confidence": 0.7105,
+      "predictedMargin": 7,
+      "nrlSlug": "warriors-v-dragons"
+    },
+    {
+      "gameId": "2026-r20-g06",
+      "homeTeam": "Bulldogs",
+      "awayTeam": "Wests Tigers",
+      "venue": "Accor Stadium",
+      "kickoffAt": "2026-07-18T09:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Wests Tigers",
+      "confidence": 0.7992,
+      "predictedMargin": 11,
+      "nrlSlug": "bulldogs-v-wests-tigers"
+    },
+    {
+      "gameId": "2026-r20-g07",
+      "homeTeam": "Titans",
+      "awayTeam": "Sea Eagles",
+      "venue": "Cbus Super Stadium",
+      "kickoffAt": "2026-07-19T04:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Titans",
+      "confidence": 0.6186,
+      "predictedMargin": 4,
+      "nrlSlug": "titans-v-sea-eagles"
+    },
+    {
+      "gameId": "2026-r20-g08",
+      "homeTeam": "Dolphins",
+      "awayTeam": "Cowboys",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-07-19T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Cowboys",
+      "confidence": 0.5516,
+      "predictedMargin": 2,
+      "nrlSlug": "dolphins-v-cowboys"
+    }
+  ]
+}

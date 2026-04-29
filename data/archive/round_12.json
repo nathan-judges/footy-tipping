@@ -1,0 +1,70 @@
+{
+  "round": 12,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-04-29T02:03:29Z",
+  "lastUpdated": "2026-04-29T02:03:29Z",
+  "marginGameId": "2026-r12-g03",
+  "games": [
+    {
+      "gameId": "2026-r12-g01",
+      "homeTeam": "Raiders",
+      "awayTeam": "Dolphins",
+      "venue": "GIO Stadium",
+      "kickoffAt": "2026-05-21T09:50:00Z",
+      "status": "upcoming",
+      "tipTeam": "Dolphins",
+      "confidence": 0.6077,
+      "predictedMargin": 3,
+      "nrlSlug": "raiders-v-dolphins"
+    },
+    {
+      "gameId": "2026-r12-g02",
+      "homeTeam": "Bulldogs",
+      "awayTeam": "Storm",
+      "venue": "Accor Stadium",
+      "kickoffAt": "2026-05-22T10:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Storm",
+      "confidence": 0.5288,
+      "predictedMargin": 1,
+      "nrlSlug": "bulldogs-v-storm"
+    },
+    {
+      "gameId": "2026-r12-g03",
+      "homeTeam": "Dragons",
+      "awayTeam": "Warriors",
+      "venue": "St George Venues Jubilee Stadium",
+      "kickoffAt": "2026-05-23T07:30:00Z",
+      "status": "upcoming",
+      "tipTeam": "Warriors",
+      "confidence": 0.7105,
+      "predictedMargin": 7,
+      "nrlSlug": "dragons-v-warriors"
+    },
+    {
+      "gameId": "2026-r12-g04",
+      "homeTeam": "Sea Eagles",
+      "awayTeam": "Titans",
+      "venue": "4 Pines Park",
+      "kickoffAt": "2026-05-23T09:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Titans",
+      "confidence": 0.6186,
+      "predictedMargin": 4,
+      "nrlSlug": "sea-eagles-v-titans"
+    },
+    {
+      "gameId": "2026-r12-g05",
+      "homeTeam": "Cowboys",
+      "awayTeam": "Rabbitohs",
+      "venue": "Queensland Country Bank Stadium",
+      "kickoffAt": "2026-05-24T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Cowboys",
+      "confidence": 0.5911,
+      "predictedMargin": 3,
+      "nrlSlug": "cowboys-v-rabbitohs"
+    }
+  ]
+}
