@@ -1,13 +1,13 @@
 {
-  "round": 27,
+  "round": 39,
   "season": 2026,
   "modelVersion": "elo-odds-v1",
-  "generatedAt": "2026-05-20T02:28:16Z",
-  "lastUpdated": "2026-05-20T02:28:16Z",
-  "marginGameId": "2026-r27-g07",
+  "generatedAt": "2026-05-20T02:28:20Z",
+  "lastUpdated": "2026-05-20T02:28:20Z",
+  "marginGameId": "2026-r39-g07",
   "games": [
     {
-      "gameId": "2026-r27-g01",
+      "gameId": "2026-r39-g01",
       "homeTeam": "Bulldogs",
       "awayTeam": "Broncos",
       "venue": "Accor Stadium",
@@ -19,7 +19,7 @@
       "nrlSlug": "bulldogs-v-broncos"
     },
     {
-      "gameId": "2026-r27-g02",
+      "gameId": "2026-r39-g02",
       "homeTeam": "Titans",
       "awayTeam": "Dolphins",
       "venue": "Cbus Super Stadium",
@@ -31,7 +31,7 @@
       "nrlSlug": "titans-v-dolphins"
     },
     {
-      "gameId": "2026-r27-g03",
+      "gameId": "2026-r39-g03",
       "homeTeam": "Rabbitohs",
       "awayTeam": "Roosters",
       "venue": "Allianz Stadium",
@@ -43,7 +43,7 @@
       "nrlSlug": "rabbitohs-v-roosters"
     },
     {
-      "gameId": "2026-r27-g04",
+      "gameId": "2026-r39-g04",
       "homeTeam": "Warriors",
       "awayTeam": "Sea Eagles",
       "venue": "Go Media Stadium",
@@ -55,7 +55,7 @@
       "nrlSlug": "warriors-v-sea-eagles"
     },
     {
-      "gameId": "2026-r27-g05",
+      "gameId": "2026-r39-g05",
       "homeTeam": "Cowboys",
       "awayTeam": "Raiders",
       "venue": "Queensland Country Bank Stadium",
@@ -67,7 +67,7 @@
       "nrlSlug": "cowboys-v-raiders"
     },
     {
-      "gameId": "2026-r27-g06",
+      "gameId": "2026-r39-g06",
       "homeTeam": "Sharks",
       "awayTeam": "Storm",
       "venue": "Ocean Protect Stadium",
@@ -79,7 +79,7 @@
       "nrlSlug": "sharks-v-storm"
     },
     {
-      "gameId": "2026-r27-g07",
+      "gameId": "2026-r39-g07",
       "homeTeam": "Dragons",
       "awayTeam": "Eels",
       "venue": "WIN Stadium",
@@ -91,7 +91,7 @@
       "nrlSlug": "dragons-v-eels"
     },
     {
-      "gameId": "2026-r27-g08",
+      "gameId": "2026-r39-g08",
       "homeTeam": "Panthers",
       "awayTeam": "Wests Tigers",
       "venue": "CommBank Stadium",
