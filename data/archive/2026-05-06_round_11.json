@@ -1,0 +1,106 @@
+{
+  "round": 11,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-05-06T01:57:54Z",
+  "lastUpdated": "2026-05-06T01:57:54Z",
+  "marginGameId": "2026-r11-g03",
+  "games": [
+    {
+      "gameId": "2026-r11-g01",
+      "homeTeam": "Sharks",
+      "awayTeam": "Bulldogs",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-15T08:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Bulldogs",
+      "confidence": 0.5459,
+      "predictedMargin": 1,
+      "nrlSlug": "sharks-v-bulldogs"
+    },
+    {
+      "gameId": "2026-r11-g02",
+      "homeTeam": "Rabbitohs",
+      "awayTeam": "Dolphins",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-15T10:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Dolphins",
+      "confidence": 0.5402,
+      "predictedMargin": 1,
+      "nrlSlug": "rabbitohs-v-dolphins"
+    },
+    {
+      "gameId": "2026-r11-g03",
+      "homeTeam": "Wests Tigers",
+      "awayTeam": "Sea Eagles",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-16T05:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Wests Tigers",
+      "confidence": 0.8685,
+      "predictedMargin": 15,
+      "nrlSlug": "wests-tigers-v-sea-eagles"
+    },
+    {
+      "gameId": "2026-r11-g04",
+      "homeTeam": "Roosters",
+      "awayTeam": "Cowboys",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-16T07:30:00Z",
+      "status": "upcoming",
+      "tipTeam": "Roosters",
+      "confidence": 0.6294,
+      "predictedMargin": 4,
+      "nrlSlug": "roosters-v-cowboys"
+    },
+    {
+      "gameId": "2026-r11-g05",
+      "homeTeam": "Eels",
+      "awayTeam": "Storm",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-16T09:45:00Z",
+      "status": "upcoming",
+      "tipTeam": "Eels",
+      "confidence": 0.7992,
+      "predictedMargin": 11,
+      "nrlSlug": "eels-v-storm"
+    },
+    {
+      "gameId": "2026-r11-g06",
+      "homeTeam": "Titans",
+      "awayTeam": "Knights",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-17T04:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Knights",
+      "confidence": 0.5058,
+      "predictedMargin": 0,
+      "nrlSlug": "titans-v-knights"
+    },
+    {
+      "gameId": "2026-r11-g07",
+      "homeTeam": "Warriors",
+      "awayTeam": "Broncos",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-17T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Warriors",
+      "confidence": 0.6712,
+      "predictedMargin": 6,
+      "nrlSlug": "warriors-v-broncos"
+    },
+    {
+      "gameId": "2026-r11-g08",
+      "homeTeam": "Panthers",
+      "awayTeam": "Dragons",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-05-17T08:25:00Z",
+      "status": "upcoming",
+      "tipTeam": "Panthers",
+      "confidence": 0.6077,
+      "predictedMargin": 3,
+      "nrlSlug": "panthers-v-dragons"
+    }
+  ]
+}

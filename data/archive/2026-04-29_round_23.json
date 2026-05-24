@@ -1,0 +1,106 @@
+{
+  "round": 23,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-04-29T02:03:34Z",
+  "lastUpdated": "2026-04-29T02:03:34Z",
+  "marginGameId": "2026-r23-g06",
+  "games": [
+    {
+      "gameId": "2026-r23-g01",
+      "homeTeam": "Titans",
+      "awayTeam": "Cowboys",
+      "venue": "Cbus Super Stadium",
+      "kickoffAt": "2026-08-06T09:50:00Z",
+      "status": "upcoming",
+      "tipTeam": "Cowboys",
+      "confidence": 0.5855,
+      "predictedMargin": 3,
+      "nrlSlug": "titans-v-cowboys"
+    },
+    {
+      "gameId": "2026-r23-g02",
+      "homeTeam": "Warriors",
+      "awayTeam": "Panthers",
+      "venue": "Go Media Stadium",
+      "kickoffAt": "2026-08-07T08:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Warriors",
+      "confidence": 0.6131,
+      "predictedMargin": 4,
+      "nrlSlug": "warriors-v-panthers"
+    },
+    {
+      "gameId": "2026-r23-g03",
+      "homeTeam": "Roosters",
+      "awayTeam": "Bulldogs",
+      "venue": "Allianz Stadium",
+      "kickoffAt": "2026-08-07T10:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Roosters",
+      "confidence": 0.701,
+      "predictedMargin": 7,
+      "nrlSlug": "roosters-v-bulldogs"
+    },
+    {
+      "gameId": "2026-r23-g04",
+      "homeTeam": "Storm",
+      "awayTeam": "Sea Eagles",
+      "venue": "HBF Park",
+      "kickoffAt": "2026-08-08T05:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Storm",
+      "confidence": 0.6506,
+      "predictedMargin": 5,
+      "nrlSlug": "storm-v-sea-eagles"
+    },
+    {
+      "gameId": "2026-r23-g05",
+      "homeTeam": "Dolphins",
+      "awayTeam": "Broncos",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-08-08T07:30:00Z",
+      "status": "upcoming",
+      "tipTeam": "Dolphins",
+      "confidence": 0.5402,
+      "predictedMargin": 1,
+      "nrlSlug": "dolphins-v-broncos"
+    },
+    {
+      "gameId": "2026-r23-g06",
+      "homeTeam": "Rabbitohs",
+      "awayTeam": "Eels",
+      "venue": "Allianz Stadium",
+      "kickoffAt": "2026-08-08T09:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Eels",
+      "confidence": 0.8239,
+      "predictedMargin": 12,
+      "nrlSlug": "rabbitohs-v-eels"
+    },
+    {
+      "gameId": "2026-r23-g07",
+      "homeTeam": "Raiders",
+      "awayTeam": "Knights",
+      "venue": "GIO Stadium",
+      "kickoffAt": "2026-08-09T04:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Knights",
+      "confidence": 0.5799,
+      "predictedMargin": 3,
+      "nrlSlug": "raiders-v-knights"
+    },
+    {
+      "gameId": "2026-r23-g08",
+      "homeTeam": "Dragons",
+      "awayTeam": "Sharks",
+      "venue": "St George Venues Jubilee Stadium",
+      "kickoffAt": "2026-08-09T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Sharks",
+      "confidence": 0.5115,
+      "predictedMargin": 0,
+      "nrlSlug": "dragons-v-sharks"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "round": 15,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-05-20T02:28:11Z",
+  "lastUpdated": "2026-05-20T02:28:11Z",
+  "marginGameId": "2026-r15-g04",
+  "games": [
+    {
+      "gameId": "2026-r15-g01",
+      "homeTeam": "Rabbitohs",
+      "awayTeam": "Broncos",
+      "venue": "Accor Stadium",
+      "kickoffAt": "2026-06-11T09:50:00Z",
+      "status": "upcoming",
+      "tipTeam": "Broncos",
+      "confidence": 0.5,
+      "predictedMargin": 0,
+      "nrlSlug": "rabbitohs-v-broncos"
+    },
+    {
+      "gameId": "2026-r15-g02",
+      "homeTeam": "Dolphins",
+      "awayTeam": "Roosters",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-06-12T10:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Roosters",
+      "confidence": 0.6763,
+      "predictedMargin": 6,
+      "nrlSlug": "dolphins-v-roosters"
+    },
+    {
+      "gameId": "2026-r15-g03",
+      "homeTeam": "Warriors",
+      "awayTeam": "Sharks",
+      "venue": "Go Media Stadium",
+      "kickoffAt": "2026-06-13T07:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Warriors",
+      "confidence": 0.701,
+      "predictedMargin": 7,
+      "nrlSlug": "warriors-v-sharks"
+    },
+    {
+      "gameId": "2026-r15-g04",
+      "homeTeam": "Eels",
+      "awayTeam": "Raiders",
+      "venue": "CommBank Stadium",
+      "kickoffAt": "2026-06-13T09:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Eels",
+      "confidence": 0.8605,
+      "predictedMargin": 14,
+      "nrlSlug": "eels-v-raiders"
+    },
+    {
+      "gameId": "2026-r15-g05",
+      "homeTeam": "Wests Tigers",
+      "awayTeam": "Titans",
+      "venue": "Leichhardt Oval",
+      "kickoffAt": "2026-06-14T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Wests Tigers",
+      "confidence": 0.8029,
+      "predictedMargin": 11,
+      "nrlSlug": "wests-tigers-v-titans"
+    }
+  ]
+}
