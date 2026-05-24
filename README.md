@@ -1,114 +1,230 @@
-# footy-tipping
+# Footy Tipping 🏉
 
-Serverless-first NRL tipping app using baked JSON data, Next.js, GitHub, and Vercel.
+[![CI](https://github.com/nathan-judges/footy-tipping/actions/workflows/ci.yml/badge.svg)](https://github.com/nathan-judges/footy-tipping/actions/workflows/ci.yml)
+[![Deploy](https://img.shields.io/badge/deploy-vercel-black)](https://vercel.com)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Current features:
-- Model tips with round-level `marginGameId` suggestion.
-- Ladder view from baked `data/ladder.json`.
-- Local picks stored in browser `localStorage` (winner picks + margin game/value).
-- Past rounds: completed rounds show final scores and accuracy for model + your picks (when results are present in baked data).
-- Edge endpoints for health, ladder, and live tip checks.
+A serverless NRL tipping application using baked JSON data, Next.js, and machine learning predictions.
 
-## Local development
+## ✨ Features
 
-1. Install dependencies:
-   - `npm install`
-2. Start the app:
-   - `npm run dev`
-3. Run checks:
-   - `npm run lint`
-   - `npm run typecheck`
-   - `npm test`
-   - `npm run check`
-   - `npm run check:all`
+- **AI-Powered Predictions**: ELO-based ensemble model for match predictions
+- **Interactive Tipping**: Save your picks locally (no login required)
+- **Live Updates**: Pre-kickoff polling for last-minute changes
+- **Historical Archive**: View past rounds with accuracy tracking
+- **Margin Game**: Select confidence picks with margin predictions
+- **Responsive Design**: Works on desktop and mobile
 
-## Consistency commands
+## 🚀 Quick Start
 
-For CI-aligned local checks:
+### Prerequisites
 
-- `npm run check` (lint + typecheck + frontend tests)
-- `npm run check:all` (everything in `check` plus Python tests)
+- Node.js 20.x or later
+- Python 3.13
+- npm (comes with Node.js)
 
-Equivalent Make targets:
+### Installation
 
-- `make check`
-- `make check-all`
+```bash
+# Clone the repository
+git clone https://github.com/nathan-judges/footy-tipping.git
+cd footy-tipping
 
-## Environment variables
+# Install Node.js dependencies
+npm install
 
-Copy `.env.example` to `.env.local` and fill values:
+# Set up Python environment
+python3.13 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-- `GITHUB_BOT_TOKEN`
-- `GITHUB_REPO`
-- `GITHUB_BRANCH`
-- `ODDS_API_KEY` (optional)
+# Copy environment file
+cp .env.example .env
+# Edit .env and add your ODDS_API_KEY if needed
+```
 
-## Pipeline local dry-run
+### Development
 
-The data pipeline entrypoint will support dry-run mode:
+```bash
+# Start development server
+npm run dev
 
-- `python scripts/update_tips.py --dry-run`
+# Run all checks (lint + typecheck + tests)
+npm run check
 
-This command should validate and print baked output locally without committing.
+# Run Python tests
+npm run test:python
 
-To regenerate local baked files:
+# Run everything
+npm run check:all
+```
 
-- `python scripts/update_tips.py --write`
+Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
-To run commit flow (requires bot env vars):
+## 📚 Documentation
 
-- `python scripts/update_tips.py --write --commit`
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to this project
+- **[Security Policy](SECURITY.md)** - Security practices and reporting
+- **[Git Workflow](.kiro/steering/git-workflow.md)** - Branching strategy and Git operations
+- **[Coding Standards](.kiro/steering/coding-standards.md)** - Code quality guidelines
+- **[Project Overview](.kiro/steering/project-overview.md)** - Architecture and key decisions
+- **[Implementation Plan](.kiro/steering/implementation-plan.md)** - Outstanding work and roadmap
 
-### Fetching live NRL data
+## 🏗️ Architecture
 
-The Python pipeline now attempts to pull fixtures and ladder data directly from `nrl.com`:
+### Stack
 
-- `python scripts/update_tips.py --write --round 8 --season 2026`
-- `npm run archive:snapshot`
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript (strict), Tailwind v4
+- **Backend**: Edge API routes, no database
+- **Data Pipeline**: Python 3.13, ELO ratings, ensemble model
+- **Hosting**: Vercel (frontend) + GitHub Actions (data pipeline)
+- **Testing**: Vitest (frontend), pytest (Python)
 
-To backfill multiple rounds in one command:
+### Data Flow
 
-- `python scripts/update_tips.py --write --season 2026 --archive-through 8`
+```
+NRL API → Python Pipeline → Baked JSON → Git Commit → Vercel Deploy → Edge CDN
+```
 
-If the NRL API is temporarily unavailable, the pipeline falls back to checked-in seed data.
+1. **Data Collection**: Python scripts fetch NRL fixtures, ladder, and odds
+2. **Prediction**: ELO-based ensemble model generates tips
+3. **Baking**: Results written to JSON files in `data/`
+4. **Commit**: GitHub Actions commits updated data to main branch
+5. **Deploy**: Vercel automatically deploys on commit
+6. **Serve**: Static JSON served via Edge CDN
 
-## Python tests
+### Key Files
 
-- `pip install -r requirements.txt`
-- `pytest tests/python/`
+| File | Purpose |
+|------|---------|
+| `data/current_round_tips.json` | Current round tips + results |
+| `data/archive/round_N.json` | Historical round snapshots |
+| `data/ladder.json` | Current NRL ladder |
+| `data/last_update.json` | Freshness metadata |
+| `scripts/update_tips.py` | Main data pipeline script |
 
-## Scheduled updates
+## 🧪 Testing
 
-- GitHub Actions workflow: `.github/workflows/update-tips.yml`
-- Weekly schedule generates `data/current_round_tips.json` and `data/last_update.json`.
-- Manual `workflow_dispatch` supports `dry_run=true` for safe verification.
-- PR checks run via `.github/workflows/ci.yml`.
+### Frontend Tests
 
-## Archive page
+```bash
+npm test                    # Run Vitest tests
+npm run test:watch          # Watch mode
+```
 
-- Route: `/archive`
-- Data source: committed JSON snapshots in `data/archive/*.json` plus current round fallback from `data/current_round_tips.json`.
-- Snapshot format should match `current_round_tips.json`.
+### Python Tests
 
-## Past rounds & accuracy
+```bash
+pytest tests/python/                              # Run all tests
+pytest tests/python/ --cov=scripts/lib            # With coverage
+pytest tests/python/ -v                           # Verbose output
+```
 
-- Use the round selector to navigate to any archived round.
-- For completed rounds (where baked snapshots include results), you will see:
-  - final scores on each game
-  - a ✓/✕ indicator for whether the model tip was correct
-  - your saved picks and whether you were correct
-  - a summary card at the top showing model and personal accuracy percentages
-- Picks are saved locally per round (no login required).
+### All Checks
 
-## Docs
+```bash
+npm run check               # Lint + typecheck + frontend tests
+npm run check:all           # Everything including Python tests
+```
 
-- Data freshness & confidence: `docs/data-freshness.md`
-- 2026 season settings: `docs/season-2026.md`
+## 🔄 Data Pipeline
 
-### Tracking accuracy
+### Local Development
 
-- For completed rounds, the app displays:
-  - model accuracy (how many winners the algorithm predicted correctly)
-  - your accuracy (how many of your saved picks were correct)
-- Game cards show a correctness indicator for model and your picks.
-- All picks are saved locally in your browser.
+```bash
+# Dry run (no file writes)
+python scripts/update_tips.py --dry-run
+
+# Generate baked files locally
+python scripts/update_tips.py --write
+
+# Generate for specific round
+python scripts/update_tips.py --write --round 8 --season 2026
+
+# Backfill multiple rounds
+python scripts/update_tips.py --write --season 2026 --archive-through 8
+```
+
+### Automated Updates
+
+- **Schedule**: Tuesday and Thursday at midnight UTC
+- **Workflow**: `.github/workflows/update-tips.yml`
+- **Manual trigger**: Available via GitHub Actions UI
+- **Bot commits**: Automated commits as `tipping-bot[bot]`
+
+## 📊 Features in Detail
+
+### Predictions
+
+- **ELO Ratings**: Team strength based on historical performance
+- **Ensemble Model**: Combines multiple prediction methods
+- **Margin Predictions**: Confidence-weighted margin estimates
+- **Backtesting**: Historical accuracy tracking
+
+### User Experience
+
+- **Local Storage**: Picks saved in browser (no account needed)
+- **Round Navigation**: View any round (current or historical)
+- **Accuracy Tracking**: Compare your picks vs model predictions
+- **Live Override**: Last-minute updates within 10 min of kickoff
+- **Responsive Design**: Works on all devices
+
+### Archive
+
+- **Historical Rounds**: View past rounds with results
+- **Accuracy Metrics**: Model and personal accuracy percentages
+- **Deduplication**: Latest snapshot wins for each round
+- **Snapshots**: Multiple dated snapshots per round supported
+
+## 🛠️ Development Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | TypeScript type checking |
+| `npm test` | Run frontend tests |
+| `npm run check` | Lint + typecheck + tests |
+| `npm run test:python` | Run Python tests |
+| `npm run check:all` | All checks (frontend + Python) |
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Development workflow
+- Code standards
+- Testing requirements
+- Pull request process
+- Commit message guidelines
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔒 Security
+
+See our [Security Policy](SECURITY.md) for information on:
+
+- Reporting vulnerabilities
+- Supported versions
+- Security best practices
+
+## 📧 Contact
+
+- **Issues**: [GitHub Issues](https://github.com/nathan-judges/footy-tipping/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/nathan-judges/footy-tipping/discussions)
+
+## 🙏 Acknowledgments
+
+- NRL for providing public fixture and ladder data
+- The Odds API for betting odds data
+- Vercel for hosting and deployment
+- Open source community for amazing tools
+
+---
+
+Built with ❤️ using Next.js, React, and Python

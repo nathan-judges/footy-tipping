@@ -29,6 +29,10 @@ jobs:
       - name: Frontend tests
         run: npm test
 
+      - name: Security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
   python-tests:
     runs-on: ubuntu-latest
     steps:
@@ -38,11 +42,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: "pip"
 
       - name: Install Python deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Run pytest
         run: PYTHONPATH=. pytest tests/python/

@@ -1,4 +1,11 @@
-"""Pipeline entrypoint for baked tips generation."""
+"""Pipeline entrypoint for baked tips generation.
+
+Orchestrates the full AI-DLC loop:
+1. Load historical data + build/update ELO ratings
+2. Run ensemble model on fixtures
+3. Serialize and write baked JSON artifacts
+4. Optionally evaluate past predictions and run backtests
+"""
 
 from __future__ import annotations
 
@@ -54,6 +61,154 @@ def _determine_current_round(season: int, max_round: int = 30) -> int:
     return 1
 
 
+# ---------------------------------------------------------------------------
+# ELO / historical data integration
+# ---------------------------------------------------------------------------
+
+def _ensure_elo_ratings(force_retrain: bool = False) -> None:
+    """Load or build ELO ratings from historical data.
+
+    Saves updated ratings to ``data/elo_ratings.json``.
+    Non-fatal: if modules are unavailable the pipeline continues without ELO.
+    """
+    try:
+        from scripts.lib.elo_ratings import EloEngine, build_elo_from_history
+        from scripts.lib.historical_data import load_all_history
+    except ImportError:
+        return
+
+    elo_path = Path("data/elo_ratings.json")
+
+    if not force_retrain and elo_path.is_file():
+        # Ratings already exist; model.py will load them at predict time
+        return
+
+    history = load_all_history()
+    if not history:
+        return
+
+    print(f"Building ELO from {len(history)} historical games...")
+    engine = build_elo_from_history(history)
+    engine.save(elo_path)
+
+    # Print top 5 ratings for verification
+    ratings = engine.get_ratings()
+    ranked = sorted(ratings.values(), key=lambda r: r.rating, reverse=True)
+    for r in ranked[:5]:
+        print(f"  {r.team}: {r.rating:.0f} ({r.games_played} games)")
+
+
+# ---------------------------------------------------------------------------
+# Post-round evaluation
+# ---------------------------------------------------------------------------
+
+def _run_evaluation(season: int) -> None:
+    """Evaluate model performance against completed rounds.
+
+    Non-fatal: logs results but does not block the pipeline.
+    """
+    try:
+        from scripts.lib.historical_data import load_all_history
+        from scripts.lib.model_monitor import ModelPerformance
+    except ImportError:
+        print("Evaluation skipped (modules not available)")
+        return
+
+    monitor = ModelPerformance()
+    monitor.load()
+
+    history = load_all_history()
+    if not history:
+        print("Evaluation skipped (no historical data)")
+        return
+
+    # Load archive data to find predictions vs results
+    archive_dir = Path("data/archive")
+    if not archive_dir.is_dir():
+        print("Evaluation skipped (no archive directory)")
+        return
+
+    evaluated_rounds = 0
+    for path in sorted(archive_dir.glob("round_*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        rnd = payload.get("round", 0)
+        games = payload.get("games", [])
+
+        # Only evaluate rounds with both predictions and results
+        has_predictions = any(g.get("tipTeam") not in (None, "N/A") for g in games)
+        has_results = any(g.get("actualWinner") for g in games)
+        if not has_predictions or not has_results:
+            continue
+
+        monitor.record_round(
+            season=payload.get("season", season),
+            round_number=rnd,
+            predictions=games,
+            results=games,
+        )
+        evaluated_rounds += 1
+
+    if evaluated_rounds > 0:
+        monitor.save()
+        rolling = monitor.get_rolling_accuracy()
+        drift = monitor.detect_drift()
+        print(f"Evaluated {evaluated_rounds} rounds. Rolling accuracy: {rolling:.1%}")
+        if drift:
+            print("⚠️  Model drift detected — consider retraining with --retrain")
+    else:
+        print("No rounds with both predictions and results available for evaluation")
+
+
+# ---------------------------------------------------------------------------
+# Backtesting
+# ---------------------------------------------------------------------------
+
+def _run_backtest() -> None:
+    """Run walk-forward backtesting and print summary."""
+    try:
+        from scripts.lib.backtester import compare_to_baselines, run_backtest, summarize_backtest
+        from scripts.lib.historical_data import load_all_history
+    except ImportError:
+        print("Backtesting skipped (modules not available)")
+        return
+
+    history = load_all_history()
+    if len(history) < 32:
+        print(f"Backtesting skipped (only {len(history)} games, need at least 32)")
+        return
+
+    print(f"Running walk-forward backtest on {len(history)} games...")
+    results = run_backtest(history)
+    if not results:
+        print("No rounds available for backtesting")
+        return
+
+    summary = summarize_backtest(results)
+    baselines = compare_to_baselines(history)
+
+    print(f"\n{'='*50}")
+    print(f"BACKTEST SUMMARY")
+    print(f"{'='*50}")
+    print(f"Games evaluated:    {summary.total_games}")
+    print(f"Correct:            {summary.correct}")
+    print(f"Accuracy:           {summary.accuracy_pct:.1f}%")
+    print(f"Brier score:        {summary.brier_score:.4f}")
+    print(f"Avg conf (correct): {summary.avg_confidence_when_correct:.3f}")
+    print(f"Avg conf (wrong):   {summary.avg_confidence_when_wrong:.3f}")
+    print(f"\nBaselines:")
+    print(f"  Always home team: {baselines.get('always_home', 0):.1f}%")
+    print(f"  Random:           {baselines.get('random', 50):.1f}%")
+    print(f"{'='*50}\n")
+
+
+# ---------------------------------------------------------------------------
+# Core pipeline
+# ---------------------------------------------------------------------------
+
 def run_pipeline(round_number: int, season: int, model_version: str) -> tuple[dict, dict, dict]:
     try:
         fixtures = fetch_round_fixtures(season=season, round_number=round_number)
@@ -106,7 +261,7 @@ def main() -> None:
     parser.add_argument("--commit", action="store_true", help="Commit baked files through GitHub API.")
     parser.add_argument("--round", default="current", dest="round_number", help="Round number, or 'current'.")
     parser.add_argument("--season", type=int, default=2026, help="Season year.")
-    parser.add_argument("--model-version", default="elo-odds-v1", help="Model version tag.")
+    parser.add_argument("--model-version", default="ensemble-v2", help="Model version tag.")
     parser.add_argument("--future-rounds", type=int, default=5, help="Generate N future rounds into data/archive/.")
     parser.add_argument(
         "--archive-through",
@@ -114,7 +269,29 @@ def main() -> None:
         default=0,
         help="Write and archive every round from 1..N in one run.",
     )
+    parser.add_argument("--retrain", action="store_true", help="Force ELO rebuild from historical data.")
+    parser.add_argument("--evaluate", action="store_true", help="Run post-round model evaluation.")
+    parser.add_argument("--backtest", action="store_true", help="Run walk-forward backtesting.")
     args = parser.parse_args()
+
+    # --- Evaluation-only mode ---
+    if args.evaluate and not args.write and not args.dry_run:
+        _run_evaluation(season=args.season)
+        return
+
+    # --- Backtest-only mode ---
+    if args.backtest:
+        _ensure_elo_ratings(force_retrain=args.retrain)
+        _run_backtest()
+        return
+
+    # --- Pre-predict: ensure ELO ratings are available ---
+    _ensure_elo_ratings(force_retrain=args.retrain)
+
+    # --- Retrain-only mode ---
+    if args.retrain and not args.write and not args.dry_run:
+        print("ELO retrain complete.")
+        return
 
     resolved_round: int
     if isinstance(args.round_number, str) and args.round_number.lower().strip() == "current":

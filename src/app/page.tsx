@@ -5,23 +5,7 @@ import { RoundSelector } from "@/components/RoundSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadAvailableRoundNumbers } from "@/lib/loadArchive";
 import { loadCurrentRoundTips, loadLadder, loadLastUpdateMeta, loadSeasonMeta } from "@/lib/loadTips";
-
-function formatRoundUpdatedLabel(timestamp: string): string {
-  return new Date(timestamp).toLocaleString("en-AU", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
-}
-
-function computeFreshness(lastSuccessfulUpdateAt: string): { label: string; variant: "fresh" | "stale" } {
-  const updatedMs = new Date(lastSuccessfulUpdateAt).getTime();
-  const ageMs = Date.now() - updatedMs;
-  const sixHours = 6 * 60 * 60 * 1000;
-  return ageMs <= sixHours ? { label: "Fresh", variant: "fresh" } : { label: "Stale", variant: "stale" };
-}
+import { computeFreshness, formatRoundUpdatedLabel } from "@/lib/utils";
 
 export default function HomePage() {
   const tips = loadCurrentRoundTips();
@@ -32,39 +16,44 @@ export default function HomePage() {
   const freshness = computeFreshness(lastUpdate.lastSuccessfulUpdateAt);
 
   return (
-    <main className="mx-auto max-w-[860px] px-4 pb-8 pt-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <h1 className="mb-2">NRL Tipping</h1>
-          <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-            <p className="m-0">
-              Round {tips.round} ({tips.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
+    <main className="mx-auto max-w-[920px] px-4 pb-10 pt-6">
+      <section className="mb-5 rounded-2xl border bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="mb-1 text-2xl font-semibold tracking-tight">NRL Tipping</h1>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <p className="m-0">
+                Round {tips.round} ({tips.season}) · Updated {formatRoundUpdatedLabel(tips.lastUpdated ?? tips.generatedAt)}
+              </p>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                  freshness.variant === "fresh" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"
+                }`}
+                title={`Last successful update: ${new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")} (${lastUpdate.source})`}
+              >
+                {freshness.label}
+              </span>
+            </div>
+            <p className="mt-2 text-sm">
+              <Link href="/archive" className="text-foreground/80 underline-offset-4 hover:underline">
+                View baked-data archive
+              </Link>
             </p>
-            <span
-              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                freshness.variant === "fresh" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"
-              }`}
-              title={`Last successful update: ${new Date(lastUpdate.lastSuccessfulUpdateAt).toLocaleString("en-AU")} (${lastUpdate.source})`}
-            >
-              {freshness.label}
-            </span>
+          </div>
+          <div className="w-full sm:w-auto">
+            <RoundSelector
+              totalRounds={seasonMeta.totalRegularRounds}
+              bakedRounds={bakedRounds}
+              selectedRound={tips.round}
+              currentRound={tips.round}
+            />
           </div>
         </div>
-
-        <RoundSelector
-          totalRounds={seasonMeta.totalRegularRounds}
-          bakedRounds={bakedRounds}
-          selectedRound={tips.round}
-          currentRound={tips.round}
-        />
-      </div>
-      <p className="mb-6">
-        <Link href="/archive">View baked-data archive</Link>
-      </p>
+      </section>
 
       <Tabs defaultValue="round">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="round">Round {tips.round}</TabsTrigger>
+          <TabsTrigger value="round">Tipping</TabsTrigger>
           <TabsTrigger value="ladder">Ladder</TabsTrigger>
         </TabsList>
 

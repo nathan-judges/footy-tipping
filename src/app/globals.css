@@ -63,7 +63,10 @@
   }
 
   body {
-    background-color: hsl(var(--background));
+    background:
+      radial-gradient(1200px 400px at 10% -10%, #eef4ff 0%, transparent 50%),
+      radial-gradient(1000px 300px at 90% -20%, #f3f8f4 0%, transparent 45%),
+      hsl(var(--background));
     color: hsl(var(--foreground));
   }
 }

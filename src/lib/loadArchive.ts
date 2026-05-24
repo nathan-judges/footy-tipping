@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadCurrentRoundTips } from "./loadTips";
+import { resolveActualWinner } from "./accuracyHelpers";
 import type { CurrentRoundTips } from "./types";
+
+export interface ModelAccuracy {
+  correct: number;
+  total: number;
+}
 
 export interface ArchiveRoundEntry {
   id: string;
@@ -11,9 +17,20 @@ export interface ArchiveRoundEntry {
   modelVersion: string;
   gameCount: number;
   marginGameId?: string;
+  /** Present only when the round has finished games with results. */
+  modelAccuracy?: ModelAccuracy;
 }
 
 const ARCHIVE_DIR = path.join(process.cwd(), "data", "archive");
+
+function computeModelAccuracy(tips: CurrentRoundTips): ModelAccuracy | undefined {
+  const finishedWithResult = tips.games.filter(
+    (g) => g.status === "finished" && resolveActualWinner(g) != null
+  );
+  if (finishedWithResult.length === 0) return undefined;
+  const correct = finishedWithResult.filter((g) => g.tipTeam === resolveActualWinner(g)).length;
+  return { correct, total: finishedWithResult.length };
+}
 
 export function loadArchiveRounds(): ArchiveRoundEntry[] {
   const rounds: CurrentRoundTips[] = [];
@@ -50,7 +67,8 @@ export function loadArchiveRounds(): ArchiveRoundEntry[] {
       generatedAt: entry.generatedAt,
       modelVersion: entry.modelVersion,
       gameCount: entry.games.length,
-      marginGameId: entry.marginGameId
+      marginGameId: entry.marginGameId,
+      modelAccuracy: computeModelAccuracy(entry)
     });
   }
 
