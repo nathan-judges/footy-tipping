@@ -1,5 +1,7 @@
 """Tests for the feature extraction engine."""
 
+import pytest
+
 from scripts.lib.elo_ratings import EloEngine
 from scripts.lib.features import (
     FeatureSet,

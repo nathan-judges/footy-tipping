@@ -121,11 +121,12 @@ def get_venue_coordinates(venue: str) -> tuple[float, float] | None:
         if known_venue.lower() == venue_lower:
             return coords
 
-    # Fuzzy fallback: check if the query is a substring of a known venue
+    # Fuzzy fallback: check if the query is a non-empty substring of a known venue
     # or vice-versa (handles truncated/abbreviated names)
-    for known_venue, coords in VENUE_COORDINATES.items():
-        known_lower = known_venue.lower()
-        if venue_lower in known_lower or known_lower in venue_lower:
-            return coords
+    if venue_lower:
+        for known_venue, coords in VENUE_COORDINATES.items():
+            known_lower = known_venue.lower()
+            if venue_lower in known_lower or known_lower in venue_lower:
+                return coords
 
     return None
