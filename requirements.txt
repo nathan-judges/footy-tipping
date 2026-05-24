@@ -1,1 +1,18 @@
-pytest
+# Core dependencies
+pytest==9.0.3
+# NumPy pinned to 1.x for PyTorch 2.2.2 compatibility
+# PyTorch 2.2.2 was compiled with NumPy 1.x and may have issues with NumPy 2.x
+numpy>=1.24.0,<2.0.0
+
+# Machine learning libraries for prediction model enhancements
+xgboost==3.2.0
+lightgbm==4.6.0
+scipy==1.17.1
+
+# PyTorch - install separately based on your platform
+# For CPU-only (recommended for CI/CD):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# For GPU support, see: https://pytorch.org/get-started/locally/
+# Note: PyTorch requires Python 3.10-3.12 (3.13 not yet supported as of 2025)
+torch>=2.0.0
+torchvision>=0.15.0

@@ -2,7 +2,8 @@ name: Update Baked Tips
 
 on:
   schedule:
-    - cron: "0 0 * * 3"
+    # Run Tuesday and Thursday at midnight UTC for pre-round + mid-round updates
+    - cron: "0 0 * * 2,4"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -15,6 +16,10 @@ on:
       season:
         description: "Season year (defaults to 2026)"
         required: false
+      retrain:
+        description: "Force ELO rebuild from historical data"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -31,18 +36,38 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
       - name: Dry run
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: python scripts/update_tips.py --dry-run
 
+      - name: Retrain ELO ratings
+        if: ${{ github.event.inputs.retrain == 'true' }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python scripts/update_tips.py --retrain --write --season ${{ github.event.inputs.season || '2026' }}
+
       - name: Generate baked data
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true') }}
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
         run: python scripts/update_tips.py --write --round ${{ github.event.inputs.round || 'current' }} --season ${{ github.event.inputs.season || '2026' }} --future-rounds 27
 
+      - name: Evaluate model performance
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true') }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python scripts/update_tips.py --evaluate --season ${{ github.event.inputs.season || '2026' }} || echo "Evaluation step skipped (non-fatal)"
+
       - name: Commit and push baked data
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.dry_run != 'true' }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true') }}
         env:
           GITHUB_BOT_NAME: tipping-bot[bot]
           GITHUB_BOT_EMAIL: tipping-bot@users.noreply.github.com

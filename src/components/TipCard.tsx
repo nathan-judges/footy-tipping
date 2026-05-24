@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { RoundGameTip } from "@/lib/types";
+import { TeamMark } from "@/components/TeamMark";
 import { getTeamIdentity } from "@/lib/teamData";
 import { getNrlMatchUrl } from "@/lib/nrlLinks";
 
@@ -164,6 +165,13 @@ export function TipCard({
             }
             onClick={() => onPickChange?.(game.gameId, game.homeTeam)}
           >
+            <TeamMark
+              team={game.homeTeam}
+              shortCode={homeTeam.shortName}
+              logoPath={homeTeam.logoPath}
+              primary={homeTeam.primary}
+              size={16}
+            />
             <span className="truncate">{game.homeTeam}</span>
             <span className={selectedPick === game.homeTeam ? "text-white/85" : "text-muted-foreground"}>({homeTeam.shortName})</span>
           </button>
@@ -191,6 +199,13 @@ export function TipCard({
             }
             onClick={() => onPickChange?.(game.gameId, game.awayTeam)}
           >
+            <TeamMark
+              team={game.awayTeam}
+              shortCode={awayTeam.shortName}
+              logoPath={awayTeam.logoPath}
+              primary={awayTeam.primary}
+              size={16}
+            />
             <span className={selectedPick === game.awayTeam ? "text-white/85" : "text-muted-foreground"}>({awayTeam.shortName})</span>
             <span className="truncate">{game.awayTeam}</span>
           </button>

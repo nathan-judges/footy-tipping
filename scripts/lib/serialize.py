@@ -43,6 +43,23 @@ def build_round_payload(
             game["actualWinner"] = tip.actual_winner
         if tip.actual_margin is not None:
             game["actualMargin"] = tip.actual_margin
+        # Ensemble model diagnostics (when available)
+        if tip.diagnostics is not None:
+            diag = tip.diagnostics
+            game["modelDiagnostics"] = {
+                "eloHome": diag.elo_home,
+                "eloAway": diag.elo_away,
+                "subPredictions": [
+                    {
+                        "modelName": sp.model_name,
+                        "tipTeam": sp.tip_team,
+                        "confidence": sp.confidence,
+                        "weight": sp.weight,
+                    }
+                    for sp in diag.sub_predictions
+                ],
+                "featureSummary": diag.feature_summary,
+            }
         games.append(game)
 
     margin_game_id = _suggest_margin_game_id(tips)

@@ -19,10 +19,10 @@ export function RoundSelector({ totalRounds, bakedRounds, selectedRound, current
   const rounds = useMemo(() => Array.from({ length: totalRounds }, (_, idx) => idx + 1), [totalRounds]);
 
   return (
-    <label className="inline-flex items-center gap-2">
+    <label className="inline-flex w-full items-center gap-2 sm:w-auto">
       <span className="text-sm text-muted-foreground">{label}</span>
       <select
-        className="rounded-md border bg-background px-2 py-1"
+        className="w-full rounded-md border bg-background px-2 py-1 sm:w-auto"
         aria-label="Select round"
         value={selectedRound}
         onChange={(event) => {
