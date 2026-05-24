@@ -2,6 +2,8 @@
 
 This file tracks improvements identified after the initial build. Update it as items are completed.
 
+**Note**: All work should follow the branching strategy documented in `git-workflow.md`. Create feature branches (`feat/`, `fix/`, `chore/`) and open PRs to main.
+
 ## Priority 1 — UI completeness (high value, low risk)
 
 ### ~~1.1 Extract shared page utilities~~ ✅
@@ -61,3 +63,4 @@ Extended `ArchiveRoundEntry` with `modelAccuracy?: { correct: number; total: num
 - [x] ELO ratings + ensemble model
 - [x] Backtesting + model monitoring
 - [x] GitHub Actions CI + scheduled update
+- [x] Git workflow and branching strategy documentation

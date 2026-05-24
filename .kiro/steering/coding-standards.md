@@ -25,9 +25,13 @@
 - Run `npm run check` before committing (lint + typecheck + frontend tests)
 - Run `npm run check:all` to include Python tests
 
-## Commits
-- Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
+## Git & Commits
+- Follow the branching strategy in `git-workflow.md`
+- Branch naming: `feat/`, `fix/`, `chore/`, `docs/`, `test/`, `perf/`
+- Conventional Commits: `<type>(<scope>): <description>`
 - Keep commits focused — one logical change per commit
+- All changes via PR (except automated bot commits)
+- Squash merge to main for clean history
 
 ## File organisation
 ```
