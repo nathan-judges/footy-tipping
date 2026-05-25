@@ -88,13 +88,12 @@ export default async function RoundPage({ params }: RoundPageProps) {
             <TabsContent value="round">
               <RoundSummaryWrapper round={tips.round} season={tips.season} games={tips.games} />
               <RoundView
-              games={tips.games}
-              round={tips.round}
-              season={tips.season}
-              suggestedMarginGameId={tips.marginGameId}
+                games={tips.games}
+                round={tips.round}
+                season={tips.season}
                 mode="all"
                 disableInteractions={isFuture}
-            />
+              />
             </TabsContent>
             <TabsContent value="ladder">
               <Ladder ladder={ladder} />

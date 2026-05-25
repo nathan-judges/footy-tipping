@@ -8,7 +8,7 @@ Four focused tasks to refactor the UI from an interactive tipping tool into a cl
 
 ### Phase 1: Remove Interactive Features
 
-- [ ] 1. Refactor TipCard — remove picking and margin props
+- [x] 1. Refactor TipCard — remove picking and margin props
   - Remove props from `TipCard`: `isMarginGame`, `marginPoints`, `modelMargin`, `onSetMarginGame`, `onMarginPointsChange`, `userPick`, `onPickChange`, `disablePicks`
   - Remove all JSX that renders margin buttons, margin inputs, and team selection buttons
   - Remove internal state related to picking or margin selection
@@ -17,7 +17,7 @@ Four focused tasks to refactor the UI from an interactive tipping tool into a cl
   - Write Vitest test verifying the simplified prop interface (margin and picking props absent)
   - _Requirements: 1.1, 1.2, 1.3, 6.1, 6.4, 6.5_
 
-- [ ] 2. Refactor RoundView — remove picking state and localStorage
+- [x] 2. Refactor RoundView — remove picking state and localStorage
   - Remove `suggestedMarginGameId` prop from `RoundView`
   - Remove `useRoundPicks` hook import and all usage
   - Remove `winnerByGameId`, `marginGameId`, `marginPoints` state
@@ -29,7 +29,7 @@ Four focused tasks to refactor the UI from an interactive tipping tool into a cl
 
 ### Phase 2: Visual Improvements
 
-- [ ] 3. Add confidence indicators and modern card design to TipCard
+- [x] 3. Add confidence indicators and modern card design to TipCard
   - Implement `getConfidenceLevel(score: number): "high" | "medium" | "low"` helper (>70% high, 55–70% medium, <55% low)
   - Apply confidence-based styling to the predicted team: font weight, color intensity, and subtle background tint (10–20% opacity) using `getTeamIdentity` colors
   - Apply reduced visual weight to the non-predicted team (lighter font, muted color)

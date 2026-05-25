@@ -58,7 +58,7 @@ export default function HomePage() {
         </TabsList>
 
         <TabsContent value="round">
-          <RoundView round={tips.round} season={tips.season} games={tips.games} suggestedMarginGameId={tips.marginGameId} />
+          <RoundView round={tips.round} season={tips.season} games={tips.games} />
         </TabsContent>
 
         <TabsContent value="ladder">

@@ -1,40 +1,85 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import type { RoundGameTip } from "@/lib/types";
-import { TeamMark } from "@/components/TeamMark";
 import { getTeamIdentity } from "@/lib/teamData";
-import { getNrlMatchUrl } from "@/lib/nrlLinks";
 
 interface TipCardProps {
-  round: number;
-  season: number;
   game: RoundGameTip;
-  userPick?: string;
-  onPickChange?: (gameId: string, team: string) => void;
-  disablePicks?: boolean;
-  isMarginGame?: boolean;
-  modelMargin?: number;
-  marginPoints?: number;
-  onSetMarginGame?: () => void;
-  onMarginPointsChange?: (points: number | undefined) => void;
+  mode: "current" | "archive";
+  disableInteractions?: boolean;
 }
 
-export function TipCard({
-  game,
-  round,
-  season,
-  userPick,
-  onPickChange,
-  disablePicks = false,
-  isMarginGame = false,
-  modelMargin,
-  marginPoints,
-  onSetMarginGame,
-  onMarginPointsChange
-}: TipCardProps) {
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+export function getConfidenceLevel(score: number): ConfidenceLevel {
+  if (score > 70) return "high";
+  if (score >= 55) return "medium";
+  return "low";
+}
+
+const confidenceStyles: Record<ConfidenceLevel, string> = {
+  high: "font-bold text-foreground",
+  medium: "font-semibold text-foreground/90",
+  low: "font-medium text-foreground/70"
+};
+
+const nonPredictedStyles = "font-normal text-muted-foreground";
+
+function hexToRgb(hex: string): string {
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return "128,128,128";
+  return `${r},${g},${b}`;
+}
+
+function getBackgroundOpacity(level: ConfidenceLevel): number {
+  if (level === "high") return 0.15;
+  if (level === "medium") return 0.10;
+  return 0.05;
+}
+
+interface TeamLogoProps {
+  team: string;
+  logoPath: string;
+  primary: string;
+  shortName: string;
+}
+
+function TeamLogo({ team, logoPath, primary, shortName }: TeamLogoProps) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <span
+        aria-label={`${team} logo`}
+        className="inline-flex shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white w-8 h-8 sm:w-10 sm:h-10"
+        style={{ backgroundColor: primary }}
+      >
+        {shortName.slice(0, 1)}
+      </span>
+    );
+  }
+
+  return (
+    <Image
+      src={logoPath}
+      alt={`${team} logo`}
+      width={40}
+      height={40}
+      className="shrink-0 object-contain w-8 h-8 sm:w-10 sm:h-10"
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
+export function TipCard({ game, mode: _mode, disableInteractions: _disableInteractions = false }: TipCardProps) {
   const [overrideTip, setOverrideTip] = useState<string | null>(game.tipOverride?.tipTeam ?? null);
   const [overrideReason, setOverrideReason] = useState<string | null>(game.tipOverride?.reason ?? null);
+  const [barMounted, setBarMounted] = useState(false);
 
   const withinPreKickoffWindow = useMemo(() => {
     const kickoffMs = new Date(game.kickoffAt).getTime();
@@ -42,6 +87,11 @@ export function TipCard({
     const tenMinutes = 10 * 60 * 1000;
     return now >= kickoffMs - tenMinutes && now < kickoffMs;
   }, [game.kickoffAt]);
+
+  // Trigger confidence bar CSS transition after mount
+  useEffect(() => {
+    setBarMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!withinPreKickoffWindow || game.status !== "upcoming") return;
@@ -108,143 +158,130 @@ export function TipCard({
 
   const homeTeam = getTeamIdentity(game.homeTeam);
   const awayTeam = getTeamIdentity(game.awayTeam);
-  const tipConfidencePct = Math.round(game.confidence * 100);
-  const homePct = finalTipTeam === game.homeTeam ? tipConfidencePct : 100 - tipConfidencePct;
+
+  // confidence is 0–1 in the data; convert to 0–100 for display and level calculation
+  const confidenceScore = Math.round(game.confidence * 100);
+  const confidenceLevel = getConfidenceLevel(confidenceScore);
+
+  const isHomePredicted = finalTipTeam === game.homeTeam;
+  const predictedTeamIdentity = isHomePredicted ? homeTeam : awayTeam;
+
+  // Home win probability for the bar: if home is predicted, use confidence; otherwise 100 - confidence
+  const homePct = isHomePredicted ? confidenceScore : 100 - confidenceScore;
   const awayPct = 100 - homePct;
-  const selectedPick = userPick ?? "";
+
+  // Background tint for the predicted team section
+  const tintOpacity = getBackgroundOpacity(confidenceLevel);
+  const tintRgb = hexToRgb(predictedTeamIdentity.primary);
+  const tintStyle = `rgba(${tintRgb}, ${tintOpacity})`;
+
   const teamVars = {
-    "--team-primary": homeTeam.primary,
     "--home-color": homeTeam.primary,
-    "--away-color": awayTeam.primary,
-    "--split": `${homePct}%`
+    "--away-color": awayTeam.primary
   } as CSSProperties;
 
-  const isUpcoming = game.status === "upcoming";
-
   return (
-    <div className="rounded-md border bg-card p-3.5" style={teamVars}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="text-sm text-muted-foreground">
-          {kickoff} · {game.venue}
-        </div>
-        <div className="flex items-center gap-2">
-          {isUpcoming ? (
-            <button
-              type="button"
-              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                isMarginGame ? "bg-black text-white" : "bg-background"
-              }`}
-              disabled={disablePicks || !onSetMarginGame}
-              onClick={() => onSetMarginGame?.()}
-              title="Set as margin game"
-            >
-              Margin
-            </button>
-          ) : null}
-          <a
-            className="text-sm font-semibold text-foreground/80 underline-offset-4 hover:underline"
-            href={getNrlMatchUrl(game, season, round)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            VIEW STATS →
-          </a>
-        </div>
+    <div className="rounded-md border bg-card shadow-sm" style={teamVars}>
+      {/* Game metadata */}
+      <div className="px-3.5 pt-3 text-sm text-muted-foreground">
+        {kickoff} · {game.venue}
       </div>
 
-      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div className="min-w-0">
-          <button
-            type="button"
-            className="inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
-            disabled={!onPickChange || disablePicks}
-            style={
-              selectedPick === game.homeTeam
-                ? { backgroundColor: homeTeam.primary, color: "#fff", borderColor: homeTeam.primary }
-                : undefined
-            }
-            onClick={() => onPickChange?.(game.gameId, game.homeTeam)}
-          >
-            <TeamMark
-              team={game.homeTeam}
-              shortCode={homeTeam.shortName}
-              logoPath={homeTeam.logoPath}
-              primary={homeTeam.primary}
-              size={16}
-            />
-            <span className="truncate">{game.homeTeam}</span>
-            <span className={selectedPick === game.homeTeam ? "text-white/85" : "text-muted-foreground"}>({homeTeam.shortName})</span>
-          </button>
-        </div>
-
-        <div className="min-w-[140px]">
-          <div className="flex items-center justify-center gap-2 text-sm font-semibold tabular-nums">
-            <span className="text-muted-foreground">{homePct}%</span>
-            <div className="relative h-2 w-[84px] overflow-hidden rounded-full bg-muted">
-              <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--home-color) 0 var(--split), var(--away-color) var(--split) 100%)" }} />
-            </div>
-            <span className="text-muted-foreground">{awayPct}%</span>
+      {/* Teams row — vertical on mobile, horizontal on sm+ */}
+      <div className="mt-2 flex flex-col gap-2 px-3.5 sm:flex-row sm:items-center sm:gap-3">
+        {/* Home team */}
+        <div
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2"
+          style={isHomePredicted ? { backgroundColor: tintStyle } : undefined}
+          data-predicted={isHomePredicted ? "true" : "false"}
+        >
+          <TeamLogo
+            team={game.homeTeam}
+            logoPath={homeTeam.logoPath}
+            primary={homeTeam.primary}
+            shortName={homeTeam.shortName}
+          />
+          <div className="min-w-0">
+            <span
+              className={`block truncate text-sm ${isHomePredicted ? confidenceStyles[confidenceLevel] : nonPredictedStyles}`}
+              data-confidence={isHomePredicted ? confidenceLevel : undefined}
+            >
+              {game.homeTeam}
+              {isHomePredicted && (
+                <span className="ml-1.5 text-xs font-normal tabular-nums text-muted-foreground">
+                  {confidenceScore}%
+                </span>
+              )}
+            </span>
+            <span className="text-xs text-muted-foreground">{homeTeam.shortName}</span>
           </div>
         </div>
 
-        <div className="min-w-0 text-right">
-          <button
-            type="button"
-            className="ml-auto inline-flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-sm font-semibold"
-            disabled={!onPickChange || disablePicks}
-            style={
-              selectedPick === game.awayTeam
-                ? { backgroundColor: awayTeam.primary, color: "#fff", borderColor: awayTeam.primary }
-                : undefined
-            }
-            onClick={() => onPickChange?.(game.gameId, game.awayTeam)}
-          >
-            <TeamMark
-              team={game.awayTeam}
-              shortCode={awayTeam.shortName}
-              logoPath={awayTeam.logoPath}
-              primary={awayTeam.primary}
-              size={16}
-            />
-            <span className={selectedPick === game.awayTeam ? "text-white/85" : "text-muted-foreground"}>({awayTeam.shortName})</span>
-            <span className="truncate">{game.awayTeam}</span>
-          </button>
+        {/* VS divider — only visible on sm+ */}
+        <div className="hidden shrink-0 text-xs font-medium text-muted-foreground sm:block">vs</div>
+
+        {/* Away team */}
+        <div
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2 sm:flex-row-reverse sm:text-right"
+          style={!isHomePredicted ? { backgroundColor: tintStyle } : undefined}
+          data-predicted={!isHomePredicted ? "true" : "false"}
+        >
+          <TeamLogo
+            team={game.awayTeam}
+            logoPath={awayTeam.logoPath}
+            primary={awayTeam.primary}
+            shortName={awayTeam.shortName}
+          />
+          <div className="min-w-0 sm:text-right">
+            <span
+              className={`block truncate text-sm ${!isHomePredicted ? confidenceStyles[confidenceLevel] : nonPredictedStyles}`}
+              data-confidence={!isHomePredicted ? confidenceLevel : undefined}
+            >
+              {game.awayTeam}
+              {!isHomePredicted && (
+                <span className="ml-1.5 text-xs font-normal tabular-nums text-muted-foreground">
+                  {confidenceScore}%
+                </span>
+              )}
+            </span>
+            <span className="text-xs text-muted-foreground">{awayTeam.shortName}</span>
+          </div>
         </div>
       </div>
 
+      {/* Confidence bar */}
+      <div className="mt-2 px-3.5 pb-3">
+        <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+          {/* Home side */}
+          <div
+            className="transition-[width] duration-700 ease-out"
+            style={{
+              width: barMounted ? `${homePct}%` : "0%",
+              backgroundColor: homeTeam.primary
+            }}
+            aria-label={`${game.homeTeam} ${homePct}%`}
+          />
+          {/* Away side */}
+          <div
+            className="flex-1 transition-[width] duration-700 ease-out"
+            style={{
+              backgroundColor: awayTeam.primary,
+              opacity: 0.6
+            }}
+            aria-label={`${game.awayTeam} ${awayPct}%`}
+          />
+        </div>
+        <div className="mt-1 flex justify-between text-xs tabular-nums text-muted-foreground">
+          <span>{homePct}%</span>
+          <span>{awayPct}%</span>
+        </div>
+      </div>
+
+      {/* Live override notice */}
       {overrideTip ? (
-        <p className="mt-2 text-xs text-violet-600">
+        <p className="px-3.5 pb-3 text-xs text-violet-600">
           Live override: {overrideTip} ({overrideReason ?? "updated"})
         </p>
-      ) : null}
-
-      {isMarginGame && isUpcoming ? (
-        <div className="mt-3 rounded-md border bg-background p-3">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div>
-              <span className="text-xs text-muted-foreground">Model spread</span>
-              <div className="mt-1.5 rounded-md border bg-card px-2.5 py-2 text-sm tabular-nums">
-                {typeof modelMargin === "number"
-                  ? `${modelMargin >= 0 ? "+" : ""}${modelMargin}`
-                  : "—"}
-              </div>
-            </div>
-            <label className="block md:col-span-2">
-              <span className="text-xs text-muted-foreground">Your margin</span>
-              <input
-                type="number"
-                className="mt-1.5 w-full rounded-md border bg-card px-2.5 py-2"
-                value={marginPoints ?? ""}
-                disabled={disablePicks || !onMarginPointsChange}
-                onChange={(event) =>
-                  onMarginPointsChange?.(
-                    event.target.value === "" ? undefined : Number(event.target.value)
-                  )
-                }
-              />
-            </label>
-          </div>
-        </div>
       ) : null}
     </div>
   );

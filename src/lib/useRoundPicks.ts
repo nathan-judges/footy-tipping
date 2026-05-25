@@ -1,3 +1,9 @@
+/**
+ * @deprecated This hook is no longer used. RoundView no longer manages user picks
+ * or reads/writes localStorage. The app is now a read-only prediction showcase.
+ * This file is retained only in case external code references it; it can be
+ * safely deleted once confirmed no other consumers exist.
+ */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
