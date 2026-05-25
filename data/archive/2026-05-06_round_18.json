@@ -1,0 +1,70 @@
+{
+  "round": 18,
+  "season": 2026,
+  "modelVersion": "elo-odds-v1",
+  "generatedAt": "2026-05-06T01:57:59Z",
+  "lastUpdated": "2026-05-06T01:57:59Z",
+  "marginGameId": "2026-r18-g04",
+  "games": [
+    {
+      "gameId": "2026-r18-g01",
+      "homeTeam": "Panthers",
+      "awayTeam": "Rabbitohs",
+      "venue": "CommBank Stadium",
+      "kickoffAt": "2026-07-03T10:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Panthers",
+      "confidence": 0.563,
+      "predictedMargin": 2,
+      "nrlSlug": "panthers-v-rabbitohs"
+    },
+    {
+      "gameId": "2026-r18-g02",
+      "homeTeam": "Dragons",
+      "awayTeam": "Wests Tigers",
+      "venue": "St George Venues Jubilee Stadium",
+      "kickoffAt": "2026-07-04T07:30:00Z",
+      "status": "upcoming",
+      "tipTeam": "Wests Tigers",
+      "confidence": 0.8337,
+      "predictedMargin": 13,
+      "nrlSlug": "dragons-v-wests-tigers"
+    },
+    {
+      "gameId": "2026-r18-g03",
+      "homeTeam": "Broncos",
+      "awayTeam": "Sharks",
+      "venue": "Suncorp Stadium",
+      "kickoffAt": "2026-07-04T09:35:00Z",
+      "status": "upcoming",
+      "tipTeam": "Broncos",
+      "confidence": 0.5345,
+      "predictedMargin": 1,
+      "nrlSlug": "broncos-v-sharks"
+    },
+    {
+      "gameId": "2026-r18-g04",
+      "homeTeam": "Eels",
+      "awayTeam": "Sea Eagles",
+      "venue": "CommBank Stadium",
+      "kickoffAt": "2026-07-05T04:00:00Z",
+      "status": "upcoming",
+      "tipTeam": "Eels",
+      "confidence": 0.8811,
+      "predictedMargin": 16,
+      "nrlSlug": "eels-v-sea-eagles"
+    },
+    {
+      "gameId": "2026-r18-g05",
+      "homeTeam": "Knights",
+      "awayTeam": "Dolphins",
+      "venue": "McDonald Jones Stadium",
+      "kickoffAt": "2026-07-05T06:05:00Z",
+      "status": "upcoming",
+      "tipTeam": "Dolphins",
+      "confidence": 0.5288,
+      "predictedMargin": 1,
+      "nrlSlug": "knights-v-dolphins"
+    }
+  ]
+}
