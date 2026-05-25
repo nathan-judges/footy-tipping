@@ -153,3 +153,29 @@ def load_injury_data(
             )
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Impact score helper
+# ---------------------------------------------------------------------------
+
+
+def compute_injury_impact(team: str, injury_data: dict[str, InjuryStatus]) -> float:
+    """Return the total injury impact score for *team*.
+
+    Looks up *team* in *injury_data* and returns its ``total_impact`` value.
+    Returns ``0.0`` when the team is absent from the mapping (i.e. no injury
+    data available — treat as full strength).
+
+    Args:
+        team: Canonical NRL team name (e.g. ``"Panthers"``).
+        injury_data: Mapping returned by :func:`load_injury_data`.
+
+    Returns:
+        Total impact score (sum of unavailable players' impact scores), or
+        ``0.0`` if the team has no recorded injuries.
+    """
+    status = injury_data.get(team)
+    if status is None:
+        return 0.0
+    return status.total_impact

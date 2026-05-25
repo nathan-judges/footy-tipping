@@ -1,86 +1,18 @@
 # NRL Prediction Model Configuration
-# Loaded on startup; validated against the schema in scripts/lib/config.py.
+# Loaded by scripts/lib/config.py on pipeline startup.
+# Run `python scripts/update_tips.py --train` to retrain and update ensemble_weights.
 
-model:
-  version: "v2.1"
+# XGBoost hyperparameters
+xgboost:
+  n_estimators: 100
+  max_depth: 4
+  learning_rate: 0.1
 
-  # Feature engineering toggles
-  features:
-    version: "v2.1"
-    enable_weather: true
-    enable_injuries: true
-    enable_travel: true
-    enable_origin_tracking: true
-
-  # Ensemble model selection
-  ensemble:
-    sub_models:
-      - elo
-      - xgboost
-      - neural
-      - market
-    optimization_objective: "brier"  # brier | logloss | accuracy
-
-  # Post-hoc probability calibration
-  calibration:
-    enabled: true
-    method: "isotonic"  # isotonic | platt
-
-  # Prediction uncertainty quantification
-  uncertainty:
-    enabled: true
-    bootstrap_samples: 100
-    confidence_level: 0.90
-
-  # Automated retraining triggers
-  retraining:
-    enabled: true
-    accuracy_threshold: 0.55
-    window_size: 4          # rounds
-    min_games_before_check: 16
-
-# External API configuration
-apis:
-  weather:
-    provider: "openweathermap"  # openweathermap | weatherapi
-    api_key_env: "WEATHER_API_KEY"
-    cache_enabled: true
-    fallback_to_averages: true
-
-  odds:
-    provider: "the-odds-api"
-    api_key_env: "ODDS_API_KEY"
-    fallback_enabled: true
-
-# Feature flags — set to false to disable individual components
-feature_flags:
-  use_gradient_boosting: true
-  use_neural_network: true
-  use_ensemble_stacking: true
-  enable_prediction_explanations: true
-  enable_confidence_intervals: true
-  enable_dashboard: true
-
-# Performance settings
-performance:
-  cache_features: true
-  parallel_feature_extraction: false  # not needed for serverless
-  max_execution_time_seconds: 300
-
-# Environment-specific overrides — merged over the base config above.
-# Only the keys you want to change need to be listed here.
-environments:
-  development:
-    model:
-      retraining:
-        enabled: false
-    apis:
-      weather:
-        cache_enabled: false
-    feature_flags:
-      use_gradient_boosting: false
-      use_neural_network: false
-      use_ensemble_stacking: false
-      enable_prediction_explanations: false
-      enable_confidence_intervals: false
-      enable_dashboard: false
+# Ensemble sub-model weights (must sum to 1.0).
+# These are updated automatically when running --train.
+# When xgboost_model.json is missing, the pipeline falls back to
+# elo + market only with weights redistributed proportionally.
+ensemble_weights:
+  elo: 0.40
+  xgboost: 0.35
+  market: 0.25

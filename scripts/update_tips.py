@@ -25,6 +25,9 @@ from scripts.lib.github_commit import GitHubConfig, commit_baked_files
 from scripts.lib.model import run_model
 from scripts.lib.serialize import build_ladder_payload, build_last_update_payload, build_round_payload
 
+# XGBoost model path
+_XGBOOST_MODEL_PATH = Path("data/models/xgboost_model.json")
+
 
 def _write_json(path: Path, payload: dict) -> str:
     content = json.dumps(payload, indent=2) + "\n"
@@ -206,6 +209,216 @@ def _run_backtest() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Training pipeline (--train flag)
+# ---------------------------------------------------------------------------
+
+def _run_train(season: int) -> None:
+    """Walk-forward training pipeline.
+
+    1. Load all historical archive data
+    2. Extract features for all historical games (with cache)
+    3. Walk-forward train XGBoost (seasons N-2, N-1 → validate N)
+    4. Optimize ensemble weights on validation predictions
+    5. Save model to data/models/xgboost_model.json
+    6. Save weights to data/config/model_config.yaml
+    7. Print backtest summary
+    """
+    try:
+        import numpy as np
+        from scripts.lib.elo_ratings import EloEngine, build_elo_from_history
+        from scripts.lib.ensemble import optimize_weights, save_weights
+        from scripts.lib.feature_cache import load_features, save_features
+        from scripts.lib.features import extract_features, feature_vector
+        from scripts.lib.historical_data import load_all_history
+        from scripts.lib.models.gradient_boosting import XGBoostPredictor
+        from scripts.lib.types import Fixture
+    except ImportError as exc:
+        print(f"Training skipped (missing dependency: {exc})")
+        return
+
+    print("Loading historical data...")
+    history = load_all_history()
+    if len(history) < 50:
+        print(f"Training skipped: only {len(history)} historical games (need at least 50)")
+        return
+
+    # Determine available seasons
+    seasons_available = sorted({r.season for r in history})
+    if len(seasons_available) < 2:
+        print(f"Training skipped: need at least 2 seasons, found {seasons_available}")
+        return
+
+    print(f"Available seasons: {seasons_available}")
+
+    # Walk-forward: train on N-2 and N-1, validate on N
+    # Use the most recent season as validation
+    validate_season = seasons_available[-1]
+    train_seasons = seasons_available[:-1]
+
+    train_games = [r for r in history if r.season in train_seasons]
+    val_games = [r for r in history if r.season == validate_season]
+
+    if not train_games:
+        print("Training skipped: no training games available")
+        return
+    if not val_games:
+        print("Training skipped: no validation games available")
+        return
+
+    print(f"Training on {len(train_games)} games from seasons {train_seasons}")
+    print(f"Validating on {len(val_games)} games from season {validate_season}")
+
+    # Build ELO from training data only
+    elo_engine = build_elo_from_history(train_games)
+
+    # Load ladder (best effort)
+    ladder: dict = {}
+    ladder_path = Path("data/ladder.json")
+    if ladder_path.is_file():
+        try:
+            import json as _json
+            ladder = _json.loads(ladder_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    def _game_to_fixture(game) -> Fixture:
+        """Convert a MatchResult to a minimal Fixture for feature extraction."""
+        return Fixture(
+            game_id=game.game_id,
+            nrl_match_id="",
+            nrl_slug="",
+            home_team=game.home_team,
+            away_team=game.away_team,
+            venue=game.venue,
+            kickoff_at=game.kickoff_at,
+            status="finished",
+            home_score=game.home_score,
+            away_score=game.away_score,
+            actual_winner=game.winner,
+            actual_margin=game.margin,
+        )
+
+    def _extract_with_cache(game, prior_history) -> list[float]:
+        """Extract features for a game, using cache when available."""
+        cached = load_features(game.game_id)
+        if cached is not None:
+            return feature_vector(cached)
+        fixture = _game_to_fixture(game)
+        features = extract_features(fixture, elo_engine, prior_history, ladder)
+        save_features(game.game_id, features)
+        return feature_vector(features)
+
+    # Build training feature matrix
+    print("Extracting training features...")
+    X_train_rows: list[list[float]] = []
+    y_train: list[float] = []
+    sorted_train = sorted(train_games, key=lambda r: (r.season, r.round_number, r.kickoff_at))
+    for i, game in enumerate(sorted_train):
+        if game.winner == "draw":
+            continue
+        prior = sorted_train[:i]
+        fv = _extract_with_cache(game, prior)
+        X_train_rows.append(fv)
+        y_train.append(1.0 if game.winner == game.home_team else 0.0)
+
+    if not X_train_rows:
+        print("Training skipped: no valid training samples")
+        return
+
+    X_train = np.array(X_train_rows, dtype=np.float32)
+    y_train_arr = np.array(y_train, dtype=np.float32)
+
+    # Train XGBoost
+    print(f"Training XGBoost on {len(X_train)} samples...")
+    predictor = XGBoostPredictor.from_config()
+    predictor.train(X_train, y_train_arr)
+
+    # Save model
+    model_path = _XGBOOST_MODEL_PATH
+    predictor.save(model_path)
+    print(f"XGBoost model saved to {model_path}")
+
+    # Build validation feature matrix and generate predictions
+    print("Extracting validation features and generating predictions...")
+    X_val_rows: list[list[float]] = []
+    y_val: list[float] = []
+    sorted_val = sorted(val_games, key=lambda r: (r.season, r.round_number, r.kickoff_at))
+    all_history_sorted = sorted(history, key=lambda r: (r.season, r.round_number, r.kickoff_at))
+
+    for game in sorted_val:
+        if game.winner == "draw":
+            continue
+        # Use all history before this game for feature extraction
+        prior = [r for r in all_history_sorted if (r.season, r.round_number) < (game.season, game.round_number)]
+        fv = _extract_with_cache(game, prior)
+        X_val_rows.append(fv)
+        y_val.append(1.0 if game.winner == game.home_team else 0.0)
+
+    if not X_val_rows:
+        print("Weight optimization skipped: no validation samples")
+        return
+
+    X_val = np.array(X_val_rows, dtype=np.float32)
+    y_val_arr = np.array(y_val, dtype=float)
+
+    # Generate XGBoost validation predictions
+    xgb_val_probs = predictor.predict_proba(X_val)
+
+    # Generate ELO validation predictions
+    elo_val_probs: list[float] = []
+    for game in sorted_val:
+        if game.winner == "draw":
+            continue
+        _, prob, _ = elo_engine.predict(game.home_team, game.away_team)
+        # prob is for the predicted winner; convert to home-win probability
+        predicted_winner, prob_val, _ = elo_engine.predict(game.home_team, game.away_team)
+        home_prob = prob_val if predicted_winner == game.home_team else (1.0 - prob_val)
+        elo_val_probs.append(home_prob)
+
+    elo_val_arr = np.array(elo_val_probs, dtype=float)
+
+    # Optimize ensemble weights (ELO + XGBoost; market odds not available for historical data)
+    print("Optimizing ensemble weights...")
+    val_predictions: dict[str, np.ndarray] = {
+        "elo": elo_val_arr,
+        "xgboost": xgb_val_probs,
+    }
+    optimized = optimize_weights(val_predictions, y_val_arr)
+
+    # Add market weight as 0 initially (will be redistributed at prediction time)
+    # Keep market weight from existing config if available
+    try:
+        from scripts.lib.config import load_config
+        existing_cfg = load_config()
+        market_w = existing_cfg.ensemble_weights.get("market", 0.25)
+    except Exception:
+        market_w = 0.25
+
+    # Scale elo+xgboost weights to leave room for market
+    remaining = 1.0 - market_w
+    final_weights = {
+        "elo": optimized.get("elo", 0.5) * remaining,
+        "xgboost": optimized.get("xgboost", 0.5) * remaining,
+        "market": market_w,
+    }
+
+    save_weights(final_weights)
+    print(f"Ensemble weights saved: {final_weights}")
+
+    # Print validation Brier score
+    ensemble_probs = (
+        final_weights["elo"] * elo_val_arr
+        + final_weights["xgboost"] * xgb_val_probs
+    )
+    brier = float(np.mean((ensemble_probs - y_val_arr) ** 2))
+    accuracy = float(np.mean((ensemble_probs >= 0.5) == (y_val_arr >= 0.5)))
+    print(f"\nValidation results (season {validate_season}):")
+    print(f"  Games:       {len(y_val_arr)}")
+    print(f"  Accuracy:    {accuracy:.1%}")
+    print(f"  Brier score: {brier:.4f}")
+
+
+# ---------------------------------------------------------------------------
 # Core pipeline
 # ---------------------------------------------------------------------------
 
@@ -272,6 +485,7 @@ def main() -> None:
     parser.add_argument("--retrain", action="store_true", help="Force ELO rebuild from historical data.")
     parser.add_argument("--evaluate", action="store_true", help="Run post-round model evaluation.")
     parser.add_argument("--backtest", action="store_true", help="Run walk-forward backtesting.")
+    parser.add_argument("--train", action="store_true", help="Train XGBoost model and optimize ensemble weights.")
     args = parser.parse_args()
 
     # --- Evaluation-only mode ---
@@ -283,6 +497,12 @@ def main() -> None:
     if args.backtest:
         _ensure_elo_ratings(force_retrain=args.retrain)
         _run_backtest()
+        return
+
+    # --- Train mode: XGBoost + ensemble weight optimization ---
+    if args.train:
+        _ensure_elo_ratings(force_retrain=True)
+        _run_train(season=args.season)
         return
 
     # --- Pre-predict: ensure ELO ratings are available ---

@@ -29,6 +29,9 @@ from .types import (
     TipResult,
 )
 
+# Path to the persisted XGBoost model
+_XGBOOST_MODEL_PATH = Path("data/models/xgboost_model.json")
+
 # ---------------------------------------------------------------------------
 # Hand-tuned feature weights  (calibrated from NRL prediction research)
 #
@@ -77,6 +80,15 @@ class EnsemblePredictor:
 
     The predictor loads historical data, ELO ratings, and ladder data
     once and reuses them across all fixtures in a round.
+
+    Sub-models:
+    - ELO predictor
+    - XGBoost classifier (loaded from data/models/xgboost_model.json)
+    - Market odds (when available)
+
+    Weights are loaded from data/config/model_config.yaml.  When XGBoost
+    model file is missing, the pipeline falls back to ELO + market only
+    with weights redistributed proportionally (Requirement 4.5).
     """
 
     def __init__(self) -> None:
@@ -84,6 +96,13 @@ class EnsemblePredictor:
         self.history: list[MatchResult] = []
         self.ladder: dict = {}
         self._initialized = False
+        self._xgb_predictor: Any | None = None
+        self._xgb_available: bool = False
+        # Weights loaded from config (may be overridden after initialization)
+        self._w_elo: float = ELO_WEIGHT
+        self._w_xgb: float = 0.0
+        self._w_feat: float = FEATURE_WEIGHT
+        self._w_mkt: float = MARKET_WEIGHT
 
     def initialize(self) -> None:
         """Load all required data.  Safe to call multiple times."""
@@ -116,7 +135,55 @@ class EnsemblePredictor:
             except Exception:
                 self.ladder = {}
 
+        # Load XGBoost model (graceful fallback when missing — Requirement 4.5)
+        self._xgb_available = False
+        self._xgb_predictor = None
+        if _XGBOOST_MODEL_PATH.is_file():
+            try:
+                from .models.gradient_boosting import XGBoostPredictor
+                xgb = XGBoostPredictor()
+                xgb.load(_XGBOOST_MODEL_PATH)
+                self._xgb_predictor = xgb
+                self._xgb_available = True
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Failed to load XGBoost model from %s: %s — running without XGBoost",
+                    _XGBOOST_MODEL_PATH,
+                    exc,
+                )
+
+        # Load ensemble weights from config
+        self._load_weights()
+
         self._initialized = True
+
+    def _load_weights(self) -> None:
+        """Load ensemble weights from config, redistributing if XGBoost unavailable."""
+        try:
+            from .config import load_config
+            from .ensemble import redistribute_weights
+            cfg = load_config()
+            weights = dict(cfg.ensemble_weights)
+        except Exception:
+            weights = {"elo": ELO_WEIGHT, "xgboost": FEATURE_WEIGHT, "market": MARKET_WEIGHT}
+
+        if not self._xgb_available and "xgboost" in weights:
+            # Redistribute XGBoost weight to ELO and market (Requirement 4.5, 5.4)
+            try:
+                from .ensemble import redistribute_weights
+                weights = redistribute_weights(weights, unavailable={"xgboost"})
+            except Exception:
+                # Manual fallback redistribution
+                xgb_w = weights.pop("xgboost", 0.0)
+                total_remaining = sum(weights.values()) or 1.0
+                weights = {k: v + xgb_w * (v / total_remaining) for k, v in weights.items()}
+
+        self._w_elo = weights.get("elo", ELO_WEIGHT)
+        self._w_xgb = weights.get("xgboost", 0.0) if self._xgb_available else 0.0
+        # "features" key is legacy; map to feature weight when xgboost not present
+        self._w_feat = weights.get("features", 0.0)
+        self._w_mkt = weights.get("market", MARKET_WEIGHT)
 
     def _build_elo_fallback(self) -> EloEngine:
         """Build ELO from history when saved ratings are unavailable."""
@@ -191,6 +258,25 @@ class EnsemblePredictor:
         return winner, round(prob, 4), snapshot
 
     # -----------------------------------------------------------------
+    # Sub-model 4: XGBoost
+    # -----------------------------------------------------------------
+
+    def _xgboost_predict(self, features: FeatureSet) -> float | None:
+        """Return home-win probability from XGBoost, or None if unavailable."""
+        if not self._xgb_available or self._xgb_predictor is None:
+            return None
+        try:
+            import numpy as np
+            fv = feature_vector(features)
+            X = np.array([fv], dtype=np.float32)
+            probs = self._xgb_predictor.predict_proba(X)
+            return float(probs[0])
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("XGBoost prediction failed: %s", exc)
+            return None
+
+    # -----------------------------------------------------------------
     # Ensemble
     # -----------------------------------------------------------------
 
@@ -223,25 +309,78 @@ class EnsemblePredictor:
         elo_tip, elo_prob, elo_margin = self._elo_predict(fixture)
         feat_tip, feat_prob, features = self._feature_predict(fixture)
         market_result = self._market_predict(fixture)
+        xgb_home_prob = self._xgboost_predict(features)
 
         # Build sub-predictions for diagnostics
         sub_preds: list[SubPrediction] = []
-
-        # Determine weights and ensemble probability
-        if market_result is not None:
-            mkt_tip, mkt_prob, odds_snapshot = market_result
-            w_elo, w_feat, w_mkt = ELO_WEIGHT, FEATURE_WEIGHT, MARKET_WEIGHT
-        else:
-            mkt_tip, mkt_prob, odds_snapshot = None, None, None
-            # Redistribute market weight
-            w_elo = ELO_WEIGHT + MARKET_WEIGHT * (ELO_WEIGHT / (ELO_WEIGHT + FEATURE_WEIGHT))
-            w_feat = FEATURE_WEIGHT + MARKET_WEIGHT * (FEATURE_WEIGHT / (ELO_WEIGHT + FEATURE_WEIGHT))
-            w_mkt = 0.0
 
         # Convert to home-team probabilities for consistent averaging
         elo_home_prob = elo_prob if elo_tip == fixture.home_team else (1.0 - elo_prob)
         feat_home_prob = feat_prob if feat_tip == fixture.home_team else (1.0 - feat_prob)
 
+        # Determine which models are available and their weights
+        market_available = market_result is not None
+        xgb_available_now = xgb_home_prob is not None
+
+        # Start from loaded config weights
+        w_elo = self._w_elo
+        w_xgb = self._w_xgb
+        w_feat = self._w_feat
+        w_mkt = self._w_mkt
+
+        # Redistribute if market or xgboost unavailable at prediction time
+        unavailable: set[str] = set()
+        if not market_available:
+            unavailable.add("market")
+        if not xgb_available_now:
+            unavailable.add("xgboost")
+
+        if unavailable:
+            try:
+                from .ensemble import redistribute_weights
+                raw_weights: dict[str, float] = {"elo": w_elo, "xgboost": w_xgb, "market": w_mkt}
+                if w_feat > 0:
+                    raw_weights["features"] = w_feat
+                redistributed = redistribute_weights(raw_weights, unavailable)
+                w_elo = redistributed.get("elo", w_elo)
+                w_xgb = redistributed.get("xgboost", 0.0)
+                w_feat = redistributed.get("features", 0.0)
+                w_mkt = redistributed.get("market", 0.0)
+            except Exception:
+                # Manual fallback: redistribute proportionally
+                if not market_available and not xgb_available_now:
+                    w_elo = ELO_WEIGHT + MARKET_WEIGHT * (ELO_WEIGHT / (ELO_WEIGHT + FEATURE_WEIGHT))
+                    w_feat = FEATURE_WEIGHT + MARKET_WEIGHT * (FEATURE_WEIGHT / (ELO_WEIGHT + FEATURE_WEIGHT))
+                    w_xgb = 0.0
+                    w_mkt = 0.0
+                elif not market_available:
+                    total = w_elo + w_xgb + w_feat
+                    if total > 0:
+                        factor = (total + w_mkt) / total
+                        w_elo *= factor
+                        w_xgb *= factor
+                        w_feat *= factor
+                    w_mkt = 0.0
+                elif not xgb_available_now:
+                    total = w_elo + w_feat + w_mkt
+                    if total > 0:
+                        factor = (total + w_xgb) / total
+                        w_elo *= factor
+                        w_feat *= factor
+                        w_mkt *= factor
+                    w_xgb = 0.0
+
+        # When neither XGBoost nor feature weights are configured, use legacy feature model
+        if w_xgb == 0.0 and w_feat == 0.0:
+            # Legacy fallback: use feature model with redistributed weight
+            w_feat = FEATURE_WEIGHT
+            total = w_elo + w_feat + w_mkt
+            if total > 0:
+                w_elo /= total
+                w_feat /= total
+                w_mkt /= total
+
+        # Build ensemble probability
         ensemble_home_prob = w_elo * elo_home_prob + w_feat * feat_home_prob
 
         sub_preds.append(SubPrediction(
@@ -250,14 +389,28 @@ class EnsemblePredictor:
             confidence=round(elo_prob, 4),
             weight=round(w_elo, 4),
         ))
-        sub_preds.append(SubPrediction(
-            model_name="features",
-            tip_team=feat_tip,
-            confidence=round(feat_prob, 4),
-            weight=round(w_feat, 4),
-        ))
 
-        if market_result is not None and mkt_tip is not None and mkt_prob is not None:
+        if w_feat > 0:
+            sub_preds.append(SubPrediction(
+                model_name="features",
+                tip_team=feat_tip,
+                confidence=round(feat_prob, 4),
+                weight=round(w_feat, 4),
+            ))
+
+        if xgb_available_now and xgb_home_prob is not None and w_xgb > 0:
+            ensemble_home_prob += w_xgb * xgb_home_prob
+            xgb_winner = fixture.home_team if xgb_home_prob >= 0.5 else fixture.away_team
+            xgb_conf = xgb_home_prob if xgb_home_prob >= 0.5 else (1.0 - xgb_home_prob)
+            sub_preds.append(SubPrediction(
+                model_name="xgboost",
+                tip_team=xgb_winner,
+                confidence=round(xgb_conf, 4),
+                weight=round(w_xgb, 4),
+            ))
+
+        if market_available and market_result is not None:
+            mkt_tip, mkt_prob, odds_snapshot = market_result
             mkt_home_prob = mkt_prob if mkt_tip == fixture.home_team else (1.0 - mkt_prob)
             ensemble_home_prob += w_mkt * mkt_home_prob
             sub_preds.append(SubPrediction(
@@ -266,8 +419,9 @@ class EnsemblePredictor:
                 confidence=round(mkt_prob, 4),
                 weight=round(w_mkt, 4),
             ))
-
-        # Final tip
+            odds_snapshot_out = odds_snapshot
+        else:
+            odds_snapshot_out = None
         if ensemble_home_prob >= 0.5:
             final_tip = fixture.home_team
             final_confidence = ensemble_home_prob
@@ -302,7 +456,7 @@ class EnsemblePredictor:
             tip_team=final_tip,
             confidence=round(final_confidence, 4),
             predicted_margin=elo_margin,
-            odds=odds_snapshot,
+            odds=odds_snapshot_out,
             diagnostics=diagnostics,
         )
 
