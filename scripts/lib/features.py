@@ -1,22 +1,26 @@
 """Feature extraction engine for NRL match prediction.
 
 Computes a rich feature set for each fixture by combining ELO ratings,
-recent form, ladder position, rest days, head-to-head record, and
-scoring / defensive trends.
+recent form, ladder position, rest days, head-to-head record, scoring /
+defensive trends, NRL-specific contextual factors (travel distance, State
+of Origin, venue win rates, rivalry, finals), weather conditions, and
+injury/suspension impacts.
 """
 
 from __future__ import annotations
 
 import logging
 import math
-from dataclasses import asdict, dataclass
+import re
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
 
 from .elo_ratings import EloEngine
 from .historical_data import MatchResult
+from .injury_tracker import InjuryStatus
 from .types import Fixture
-from .weather_api import VENUE_COORDINATES
+from .weather_api import VENUE_COORDINATES, WeatherData
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +161,120 @@ FEATURE_NAMES: list[str] = [
 
 
 # ---------------------------------------------------------------------------
+# Feature validation
+# ---------------------------------------------------------------------------
+
+#: Default weather values used when no real weather data has been fetched.
+#: All three fields at their defaults simultaneously indicates missing weather.
+_DEFAULT_TEMPERATURE_C: float = 20.0
+_DEFAULT_PRECIPITATION_MM: float = 0.0
+_DEFAULT_WIND_SPEED_KMH: float = 10.0
+
+
+@dataclass
+class ValidationResult:
+    """Result of validating a :class:`FeatureSet` for completeness.
+
+    Attributes:
+        is_complete: ``True`` when no required data is missing.
+        missing_fields: Names of feature groups that are absent or at
+            placeholder defaults (e.g. ``"weather"``, ``"injury"``).
+        warnings: Human-readable warning messages suitable for logging.
+    """
+
+    is_complete: bool
+    missing_fields: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+def validate_features(
+    features: FeatureSet,
+    game_id: str | None = None,
+    home_team: str | None = None,
+    away_team: str | None = None,
+) -> ValidationResult:
+    """Validate a :class:`FeatureSet` for completeness and flag missing data.
+
+    Checks whether weather and injury data appear to be real values or
+    placeholder defaults.  Emits ``logging.WARNING`` messages for each
+    missing data group so that operators can identify gaps in the pipeline.
+
+    Weather is considered missing when *all three* of ``temperature_c``,
+    ``precipitation_mm``, and ``wind_speed_kmh`` are simultaneously at their
+    default values (20.0 °C, 0.0 mm, 10.0 km/h), which indicates that no
+    real weather fetch occurred.
+
+    Injury data is considered missing when *both* ``injury_impact_home`` and
+    ``injury_impact_away`` are 0.0, which is the default when no injury file
+    was loaded.  (A genuine zero-impact state is indistinguishable from a
+    missing-data state, so this is a conservative heuristic.)
+
+    Args:
+        features: The :class:`FeatureSet` to validate.
+        game_id: Optional game identifier included in log messages for
+            traceability.
+        home_team: Optional home team name included in log messages.
+        away_team: Optional away team name included in log messages.
+
+    Returns:
+        A :class:`ValidationResult` describing completeness and any warnings.
+    """
+    context_parts: list[str] = []
+    if game_id is not None:
+        context_parts.append(f"game_id={game_id!r}")
+    if home_team is not None and away_team is not None:
+        context_parts.append(f"{home_team} vs {away_team}")
+    context = f" [{', '.join(context_parts)}]" if context_parts else ""
+
+    missing_fields: list[str] = []
+    warnings: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Weather data check
+    # ------------------------------------------------------------------
+    weather_at_defaults = (
+        features.temperature_c == _DEFAULT_TEMPERATURE_C
+        and features.precipitation_mm == _DEFAULT_PRECIPITATION_MM
+        and features.wind_speed_kmh == _DEFAULT_WIND_SPEED_KMH
+    )
+    if weather_at_defaults:
+        missing_fields.append("weather")
+        msg = (
+            f"Missing weather data{context}: all weather fields are at default "
+            f"values (temperature_c={_DEFAULT_TEMPERATURE_C}, "
+            f"precipitation_mm={_DEFAULT_PRECIPITATION_MM}, "
+            f"wind_speed_kmh={_DEFAULT_WIND_SPEED_KMH}). "
+            "Predictions will use placeholder weather features."
+        )
+        warnings.append(msg)
+        logger.warning(msg)
+
+    # ------------------------------------------------------------------
+    # Injury data check
+    # ------------------------------------------------------------------
+    injury_at_defaults = (
+        features.injury_impact_home == 0.0
+        and features.injury_impact_away == 0.0
+    )
+    if injury_at_defaults:
+        missing_fields.append("injury")
+        msg = (
+            f"Missing injury data{context}: injury_impact_home and "
+            "injury_impact_away are both 0.0. "
+            "Predictions will use zero injury adjustment."
+        )
+        warnings.append(msg)
+        logger.warning(msg)
+
+    is_complete = len(missing_fields) == 0
+    return ValidationResult(
+        is_complete=is_complete,
+        missing_fields=missing_fields,
+        warnings=warnings,
+    )
+
+
+# ---------------------------------------------------------------------------
 # State of Origin detection
 # ---------------------------------------------------------------------------
 
@@ -217,17 +335,22 @@ def is_state_of_origin_round(season: int, round_number: int) -> bool:
 # ---------------------------------------------------------------------------
 
 #: Traditional NRL rivalry matchups (symmetric — order of teams doesn't matter).
+#:
+#: Each entry is a frozenset of exactly two team names so that the check is
+#: order-independent (home vs away doesn't matter).
 RIVALRY_PAIRS: set[frozenset[str]] = {
-    frozenset({"Broncos", "Cowboys"}),       # QLD derby
-    frozenset({"Roosters", "Rabbitohs"}),    # Sydney derby
-    frozenset({"Storm", "Broncos"}),          # Historical finals
-    frozenset({"Panthers", "Eels"}),          # Western Sydney
+    frozenset({"Broncos", "Cowboys"}),       # QLD derby — State of Origin-adjacent
+    frozenset({"Roosters", "Rabbitohs"}),    # Sydney derby — fierce cross-town rivalry
+    frozenset({"Storm", "Broncos"}),          # Historical finals rivalry
+    frozenset({"Panthers", "Eels"}),          # Western Sydney derby
     frozenset({"Sharks", "Dragons"}),         # St George Illawarra vs Cronulla
-    frozenset({"Sea Eagles", "Eagles"}),      # Manly variants
     frozenset({"Raiders", "Bulldogs"}),       # Historical rivalry
-    frozenset({"Knights", "Cowboys"}),        # Regional rivalry
-    frozenset({"Broncos", "Rabbitohs"}),      # Historical finals
-    frozenset({"Storm", "Raiders"}),          # Historical finals
+    frozenset({"Knights", "Cowboys"}),        # Regional QLD/NSW rivalry
+    frozenset({"Broncos", "Rabbitohs"}),      # Historical finals rivalry
+    frozenset({"Storm", "Raiders"}),          # Historical finals rivalry
+    frozenset({"Sea Eagles", "Roosters"}),    # Northern Beaches vs Eastern Suburbs
+    frozenset({"Tigers", "Bulldogs"}),        # Western Sydney rivalry
+    frozenset({"Dragons", "Rabbitohs"}),      # South Sydney rivalry
 }
 
 
@@ -267,6 +390,7 @@ TEAM_HOME_VENUES: dict[str, str] = {
     "Dragons": "WIN Stadium",
     "Bulldogs": "Accor Stadium",      # share with Rabbitohs
     "Dolphins": "Suncorp Stadium",    # share with Broncos
+    "Titans": "Cbus Super Stadium",
     "Warriors": "Mt Smart Stadium",
 }
 
@@ -462,6 +586,32 @@ def _pd_per_game(team: str, ladder: dict) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Game ID parsing helpers
+# ---------------------------------------------------------------------------
+
+#: Regex to extract season and round from game IDs like "2026-r01-g01".
+_GAME_ID_RE = re.compile(r"^(\d{4})-r(\d+)-", re.IGNORECASE)
+
+
+def _parse_season_round(game_id: str) -> tuple[int | None, int | None]:
+    """Extract (season, round_number) from a game ID string.
+
+    Supports the canonical format ``"YYYY-rNN-gNN"`` (e.g. ``"2026-r01-g01"``).
+    Returns ``(None, None)`` when the format is not recognised.
+
+    Args:
+        game_id: Game identifier string.
+
+    Returns:
+        A ``(season, round_number)`` tuple of integers, or ``(None, None)``.
+    """
+    m = _GAME_ID_RE.match(game_id)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    return None, None
+
+
+# ---------------------------------------------------------------------------
 # Main extraction
 # ---------------------------------------------------------------------------
 
@@ -470,37 +620,188 @@ def extract_features(
     elo_engine: EloEngine,
     history: list[MatchResult],
     ladder: dict,
+    weather_data: WeatherData | None = None,
+    injury_data: dict[str, InjuryStatus] | None = None,
 ) -> FeatureSet:
     """Compute the full feature set for *fixture*.
 
     All history entries should be sorted chronologically.  Features are
     computed using only data available *before* the fixture's kickoff.
+
+    When *weather_data* is ``None`` the weather fields in the returned
+    :class:`FeatureSet` will be left at their defaults (temperature_c=20.0,
+    precipitation_mm=0.0, wind_speed_kmh=10.0, wet_weather=False).
+
+    When *injury_data* is ``None`` (or a team is absent from the mapping)
+    the injury fields default to zero adjustments and ``False`` flags.
+
+    Args:
+        fixture: The upcoming or historical fixture to compute features for.
+        elo_engine: Trained :class:`EloEngine` instance with current ratings.
+        history: Chronologically sorted list of completed :class:`MatchResult`
+            objects.  Only entries *before* the fixture's kickoff are used.
+        ladder: Current ladder dict (``{"rows": [{"team": ..., "rank": ...,
+            "played": ..., "pointsDiff": ...}, ...]}``) used for ladder
+            position and points-differential features.
+        weather_data: Optional :class:`WeatherData` for the fixture's venue
+            and kickoff time.  Pass ``None`` to use default weather values.
+        injury_data: Optional mapping of team name → :class:`InjuryStatus`.
+            Pass ``None`` or omit to use zero injury adjustments.
+
+    Returns:
+        A fully populated :class:`FeatureSet` for the fixture.
     """
     prior = _history_before(fixture, history)
 
+    # ------------------------------------------------------------------
+    # ELO features
+    # ------------------------------------------------------------------
     elo_home = elo_engine.get_rating(fixture.home_team)
     elo_away = elo_engine.get_rating(fixture.away_team)
     # Include home advantage in the diff (matches how EloEngine.predict works)
     elo_diff = (elo_home + elo_engine.home_advantage) - elo_away
 
+    # ------------------------------------------------------------------
+    # Ladder features
+    # ------------------------------------------------------------------
     home_ladder = _ladder_position(fixture.home_team, ladder)
     away_ladder = _ladder_position(fixture.away_team, ladder)
 
+    # ------------------------------------------------------------------
+    # Rest days and short turnaround
+    # ------------------------------------------------------------------
+    rest_days_home = _days_since_last_game(fixture.home_team, fixture, prior)
+    rest_days_away = _days_since_last_game(fixture.away_team, fixture, prior)
+    # Short turnaround: fewer than 6 days rest (Requirement 1.4)
+    short_turnaround_home = rest_days_home < 6
+    short_turnaround_away = rest_days_away < 6
+
+    # ------------------------------------------------------------------
+    # Season and round number (parsed from game_id)
+    # ------------------------------------------------------------------
+    season, round_number = _parse_season_round(fixture.game_id)
+
+    # ------------------------------------------------------------------
+    # State of Origin features (Requirement 1.3)
+    # ------------------------------------------------------------------
+    if season is not None and round_number is not None:
+        soo_round = is_state_of_origin_round(season, round_number)
+    else:
+        soo_round = False
+    # origin_affected counts are not automatically computable without a
+    # representative player roster; default to 0 (populated externally if needed)
+    origin_affected_home = 0
+    origin_affected_away = 0
+
+    # ------------------------------------------------------------------
+    # Finals match flag (Requirement 1.7)
+    # NRL finals begin at round 28 (rounds 1-27 are regular season)
+    # ------------------------------------------------------------------
+    finals_match = round_number is not None and round_number > 27
+
+    # ------------------------------------------------------------------
+    # Travel distance (Requirement 1.2)
+    # ------------------------------------------------------------------
+    travel_distance_km = compute_travel_distance(fixture.away_team, fixture.venue)
+
+    # ------------------------------------------------------------------
+    # Venue-specific win rates (Requirement 1.5)
+    # ------------------------------------------------------------------
+    venue_win_rate_home = compute_venue_specific_win_rate(
+        fixture.home_team, fixture.venue, prior
+    )
+    venue_win_rate_away = compute_venue_specific_win_rate(
+        fixture.away_team, fixture.venue, prior
+    )
+
+    # ------------------------------------------------------------------
+    # Rivalry detection (Requirement 1.6)
+    # ------------------------------------------------------------------
+    rivalry = is_rivalry_game(fixture.home_team, fixture.away_team)
+
+    # ------------------------------------------------------------------
+    # Weather features (Requirement 2.1, 2.3, 2.4)
+    # Use FeatureSet defaults when weather_data is None.
+    # ------------------------------------------------------------------
+    if weather_data is not None:
+        temperature_c = weather_data.temperature_c
+        precipitation_mm = weather_data.precipitation_mm
+        wind_speed_kmh = weather_data.wind_speed_kmh
+        wet_weather = precipitation_mm > 5.0
+    else:
+        temperature_c = 20.0
+        precipitation_mm = 0.0
+        wind_speed_kmh = 10.0
+        wet_weather = False
+
+    # ------------------------------------------------------------------
+    # Injury / suspension features (Requirement 3.1, 3.3)
+    # Use zero adjustments when injury_data is None or team not present.
+    # ------------------------------------------------------------------
+    injury_map: dict[str, InjuryStatus] = injury_data if injury_data is not None else {}
+
+    home_injury = injury_map.get(fixture.home_team)
+    if home_injury is not None:
+        injury_impact_home = home_injury.total_impact
+        key_player_out_home = home_injury.key_player_out
+    else:
+        injury_impact_home = 0.0
+        key_player_out_home = False
+
+    away_injury = injury_map.get(fixture.away_team)
+    if away_injury is not None:
+        injury_impact_away = away_injury.total_impact
+        key_player_out_away = away_injury.key_player_out
+    else:
+        injury_impact_away = 0.0
+        key_player_out_away = False
+
+    # ------------------------------------------------------------------
+    # Assemble and return the full feature set
+    # ------------------------------------------------------------------
     return FeatureSet(
+        # ELO-derived
         elo_diff=round(elo_diff, 2),
         elo_home=round(elo_home, 2),
         elo_away=round(elo_away, 2),
         home_advantage=1.0,
+        # Recent form
         form_home_5=round(_recent_form(fixture.home_team, prior, 5), 4),
         form_away_5=round(_recent_form(fixture.away_team, prior, 5), 4),
+        # Points differential
         pd_per_game_home=round(_pd_per_game(fixture.home_team, ladder), 2),
         pd_per_game_away=round(_pd_per_game(fixture.away_team, ladder), 2),
+        # Ladder
         ladder_pos_diff=home_ladder - away_ladder,
-        rest_days_home=_days_since_last_game(fixture.home_team, fixture, prior),
-        rest_days_away=_days_since_last_game(fixture.away_team, fixture, prior),
+        # Rest days
+        rest_days_home=rest_days_home,
+        rest_days_away=rest_days_away,
+        # Head-to-head
         h2h_home_wins_recent=_head_to_head(fixture.home_team, fixture.away_team, prior, 4),
+        # Scoring / defensive trends
         scoring_trend_home=round(_scoring_trend(fixture.home_team, prior, 5), 2),
         scoring_trend_away=round(_scoring_trend(fixture.away_team, prior, 5), 2),
         defensive_trend_home=round(_defensive_trend(fixture.home_team, prior, 5), 2),
         defensive_trend_away=round(_defensive_trend(fixture.away_team, prior, 5), 2),
+        # NRL-specific contextual features
+        travel_distance_km=round(travel_distance_km, 2),
+        short_turnaround_home=short_turnaround_home,
+        short_turnaround_away=short_turnaround_away,
+        state_of_origin_round=soo_round,
+        origin_affected_home=origin_affected_home,
+        origin_affected_away=origin_affected_away,
+        venue_win_rate_home=round(venue_win_rate_home, 4),
+        venue_win_rate_away=round(venue_win_rate_away, 4),
+        rivalry_game=rivalry,
+        finals_match=finals_match,
+        # Weather
+        temperature_c=round(temperature_c, 2),
+        precipitation_mm=round(precipitation_mm, 2),
+        wind_speed_kmh=round(wind_speed_kmh, 2),
+        wet_weather=wet_weather,
+        # Injury / suspension
+        injury_impact_home=round(injury_impact_home, 4),
+        injury_impact_away=round(injury_impact_away, 4),
+        key_player_out_home=key_player_out_home,
+        key_player_out_away=key_player_out_away,
     )

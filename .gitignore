@@ -20,6 +20,10 @@ next-env.d.ts
 
 # python
 __pycache__/
+.hypothesis/
+
+# generated runtime artifacts
+data/features/
 *.py[cod]
 *$py.class
 *.so
